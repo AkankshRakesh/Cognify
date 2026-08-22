@@ -1,0 +1,17 @@
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\bin\Debug\net8.0\Cognify.Services.deps.json
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\bin\Debug\net8.0\Cognify.Services.dll
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\bin\Debug\net8.0\Cognify.Services.pdb
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\bin\Debug\net8.0\Cognify.Core.dll
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\bin\Debug\net8.0\Cognify.Data.dll
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\bin\Debug\net8.0\Cognify.Core.pdb
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\bin\Debug\net8.0\Cognify.Data.pdb
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\obj\Debug\net8.0\Cognify.Services.csproj.AssemblyReference.cache
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\obj\Debug\net8.0\Cognify.Services.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\obj\Debug\net8.0\Cognify.Services.AssemblyInfoInputs.cache
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\obj\Debug\net8.0\Cognify.Services.AssemblyInfo.cs
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\obj\Debug\net8.0\Cognify.Services.csproj.CoreCompileInputs.cache
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\obj\Debug\net8.0\Cognify..D989F054.Up2Date
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\obj\Debug\net8.0\Cognify.Services.dll
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\obj\Debug\net8.0\refint\Cognify.Services.dll
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\obj\Debug\net8.0\Cognify.Services.pdb
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\obj\Debug\net8.0\ref\Cognify.Services.dll

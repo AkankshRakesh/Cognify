@@ -1,0 +1,316 @@
+@model HomeIndexVM
+@{
+    ViewData["Title"] = "Home";
+}
+
+<!-- ==========================================================================
+     HERO
+     ========================================================================== -->
+<section class="hero hero-gif-bg">
+    <div class="hero-overlay"></div>
+
+    <div class="hero-content">
+        <h1>
+            Exams that adapt to
+            <span class="accent-amber">the student</span>,
+            scoring that rewards
+            <span class="accent-teal">honest confidence</span>.
+        </h1>
+
+        <div class="hero-cta">
+            <a class="btn-hero-primary"
+               asp-controller="AccountController"
+               asp-action="Register">
+                Create your first exam
+            </a>
+
+            <a class="btn-hero-secondary" href="#how-it-works">
+                See how scoring works
+            </a>
+        </div>
+
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <span class="num">@Model.TotalExamsConducted</span>
+                <span class="label">Exams Conducted</span>
+            </div>
+
+            <div class="hero-stat">
+                <span class="num">@Model.TotalQuestionsInBank.ToString("N0")</span>
+                <span class="label">Questions in Bank</span>
+            </div>
+
+            <div class="hero-stat">
+                <span class="num">@Model.TotalStudentsRegistered.ToString("N0")</span>
+                <span class="label">Students</span>
+            </div>
+
+            <div class="hero-stat">
+                <span class="num">@Model.AveragePassPercentage.ToString("0.0")%</span>
+                <span class="label">Avg. Pass Rate</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==========================================================================
+     STUDENT DASHBOARD STRIP (only when logged in)
+     ========================================================================== -->
+@* @if (Model.IsAuthenticated)
+{
+    <section class="section section-paper-dim">
+        <div class="container">
+            <div class="row gy-5">
+                <div class="col-lg-6">
+                    <span class="section-eyebrow">Up Next</span>
+                    <h2 class="section-title" style="font-size:1.5rem;">Your Upcoming Exams</h2>
+                    @foreach (var exam in Model.UpcomingExams)
+                    {
+                        <div class="dash-card">
+                            <div>
+                                <span class="subject-tag">@exam.Subject</span>
+                                <h5>@exam.Title</h5>
+                                <span class="meta">@exam.StartTime.ToString("ddd, dd MMM &middot; hh:mm tt") &middot; @exam.DurationMinutes min</span>
+                                <div class="mt-2">
+                                    @if (exam.IsAdaptive)
+                                    {
+                                        <span class="badge-mode amber">Adaptive</span>
+                                    }
+                                    @if (exam.IsConfidenceWeighted)
+                                    {
+                                        <span class="badge-mode teal">Confidence-Weighted</span>
+                                    }
+                                </div>
+                            </div>
+                            <a class="btn btn-brand btn-sm" asp-controller="ExamAttemptController" asp-action="Start" asp-route-id="@exam.ExamId">Start</a>
+                        </div>
+                    }
+                </div>
+                <div class="col-lg-6">
+                    <span class="section-eyebrow">Recently Published</span>
+                    <h2 class="section-title" style="font-size:1.5rem;">Your Recent Results</h2>
+                    @foreach (var result in Model.RecentResults)
+                    {
+                        <div class="dash-card">
+                            <div>
+                                <h5>@result.Title</h5>
+                                <span class="meta">Submitted @result.SubmittedOn.ToString("dd MMM yyyy")</span>
+                            </div>
+                            <div class="text-end">
+                                <span class="num display-font" style="font-size:1.3rem;font-weight:800;">@result.Score/@result.TotalMarks</span>
+                                <div>
+                                    <a class="small" asp-controller="ResultController" asp-action="Details" asp-route-examId="@result.ExamId">View calibration report &rarr;</a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
+}
+
+<!-- ==========================================================================
+     FEATURES
+     ========================================================================== -->
+<section class="section" id="features">
+    <div class="container">
+        <span class="section-eyebrow">What Makes This Different</span>
+        <h2 class="section-title">Not just another MCQ portal.</h2>
+        <p class="section-sub">
+            Every exam starts as a standard timed test. Teachers can then switch on either
+            or both of the diagnostic engines below &mdash; independently, per exam.
+        </p>
+
+        <div class="row g-4 mt-3">
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card highlight">
+                    <span class="feature-pill amber">Unique</span>
+                    <div class="feature-icon amber">&#9650;</div>
+                    <h3>Adaptive Difficulty Engine</h3>
+                    <p>Two correct answers in a row on a topic pushes the next question harder; a wrong answer eases off &mdash; a mini-CAT model built per concept, not per paper.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card highlight-teal">
+                    <span class="feature-pill teal">Unique</span>
+                    <div class="feature-icon teal">&#9673;</div>
+                    <h3>Confidence-Weighted Scoring</h3>
+                    <p>Students tag each answer Low / Medium / High confidence. Being right and sure scores more than being right and guessing &mdash; and it shows.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <div class="feature-icon ink">&#128200;</div>
+                    <h3>Weak Concept Map</h3>
+                    <p>Wrong answers auto-cluster by concept tag into a heatmap, turning a raw score into a personalised revision list.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <div class="feature-icon ink">&#9201;</div>
+                    <h3>Server-Enforced Timing</h3>
+                    <p>Exam start, duration, and auto-submit are validated server-side, not by the browser clock &mdash; so a refresh or a slow connection can't extend the exam.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==========================================================================
+     SIGNATURE VISUAL: CALIBRATION QUADRANT
+     ========================================================================== -->
+<section class="section section-ink">
+    <div class="container">
+        <div class="row align-items-center gy-5">
+            <div class="col-lg-5">
+                <span class="section-eyebrow">The Calibration Report</span>
+                <h2 class="section-title">See not just what they got wrong &mdash; but how sure they were.</h2>
+                <p class="section-sub">
+                    Every confidence-weighted attempt is plotted on a quadrant: correctness on
+                    one axis, self-reported confidence on the other. The top-left quadrant is
+                    the one that matters most to a teacher &mdash; students who are confidently wrong,
+                    a blind spot a normal percentage score hides completely.
+                </p>
+                <div class="d-flex gap-4 mt-4">
+                    <div>
+                        <span class="num display-font" style="font-size:1.6rem;font-weight:800;color:var(--coral);">12%</span>
+                        <div class="section-sub" style="font-size:0.82rem;margin:0;">Overconfidence Index</div>
+                    </div>
+                    <div>
+                        <span class="num display-font" style="font-size:1.6rem;font-weight:800;color:var(--teal);">7%</span>
+                        <div class="section-sub" style="font-size:0.82rem;margin:0;">Underconfidence Index</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-7">
+                <div class="quadrant-wrap">
+                    <div class="quadrant-grid">
+                        <span class="q-axis-label" style="top:-18px;left:0;">HIGH CONFIDENCE</span>
+                        <span class="q-axis-label" style="bottom:-18px;left:0;">LOW CONFIDENCE</span>
+                        <span class="q-axis-label" style="bottom:-28px;left:0;">WRONG</span>
+                        <span class="q-axis-label" style="bottom:-28px;right:0;">CORRECT</span>
+
+                        <!-- Wrong + high confidence cluster (the danger zone) -->
+                        <span class="q-dot wrong" style="left:12%; bottom:88%;"></span>
+                        <span class="q-dot wrong" style="left:18%; bottom:80%;"></span>
+                        <span class="q-dot wrong" style="left:9%;  bottom:72%;"></span>
+                        <span class="q-callout" style="left:6%; top:8%;">4 concepts: confidently wrong</span>
+
+                        <!-- Correct + high confidence (well calibrated) -->
+                        <span class="q-dot correct" style="left:82%; bottom:90%;"></span>
+                        <span class="q-dot correct" style="left:74%; bottom:82%;"></span>
+                        <span class="q-dot correct" style="left:88%; bottom:76%;"></span>
+                        <span class="q-dot correct" style="left:79%; bottom:68%;"></span>
+
+                        <!-- Correct + low confidence (underconfident) -->
+                        <span class="q-dot correct" style="left:70%; bottom:22%;"></span>
+                        <span class="q-dot correct" style="left:60%; bottom:14%;"></span>
+
+                        <!-- Wrong + low confidence (expected) -->
+                        <span class="q-dot wrong" style="left:22%; bottom:18%;"></span>
+                        <span class="q-dot wrong" style="left:30%; bottom:10%;"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==========================================================================
+     HOW IT WORKS
+     ========================================================================== -->
+<section class="section section-ink" id="how-it-works" style="padding-top:0;">
+    <div class="container">
+        <span class="section-eyebrow">How An Exam Runs</span>
+        <h2 class="section-title" style="color:var(--text-onink);">From question bank to published result.</h2>
+
+        <div class="mt-4">
+            <div class="process-row">
+                <div class="process-index">01</div>
+                <div class="process-body">
+                    <h4>Build the question bank</h4>
+                    <p>Teachers add MCQs tagged with subject, concept, and difficulty &mdash; individually or via bulk import.</p>
+                </div>
+            </div>
+            <div class="process-row">
+                <div class="process-index">02</div>
+                <div class="process-body">
+                    <h4>Configure the exam <span class="process-tag amber">Adaptive: on/off</span><span class="process-tag teal">Confidence: on/off</span></h4>
+                    <p>Set duration, start window, and negative marking &mdash; then independently toggle Adaptive Difficulty and Confidence-Weighted Scoring, or leave both off for a standard fixed-paper test.</p>
+                </div>
+            </div>
+            <div class="process-row">
+                <div class="process-index">03</div>
+                <div class="process-body">
+                    <h4>Students attempt, server enforces time</h4>
+                    <p>Each answer (and confidence tag, if enabled) is saved as it's submitted. If Adaptive is on, the next question's difficulty is decided in real time per concept.</p>
+                </div>
+            </div>
+            <div class="process-row">
+                <div class="process-index">04</div>
+                <div class="process-body">
+                    <h4>Auto-evaluation on submit</h4>
+                    <p>Scores are computed entirely server-side the moment the exam is submitted or the timer expires &mdash; never trusting a client-calculated score.</p>
+                </div>
+            </div>
+            <div class="process-row">
+                <div class="process-index">05</div>
+                <div class="process-body">
+                    <h4>Results publish with diagnostics</h4>
+                    <p>Students see their score plus, where enabled, a calibration report and a weak-concept heatmap; teachers see class-wide analytics.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==========================================================================
+     ROLE-BASED ENTRY
+     ========================================================================== -->
+<section class="section">
+    <div class="container">
+        <span class="section-eyebrow">Built For Both Sides Of The Exam</span>
+        <h2 class="section-title">Pick where you start.</h2>
+
+        <div class="row g-4 mt-3">
+            <div class="col-md-6">
+                <div class="role-card">
+                    <span class="role-kicker">For Teachers &amp; Admins</span>
+                    <h3>Create and publish exams</h3>
+                    <ul>
+                        <li>Manage a tagged, reusable question bank</li>
+                        <li>Toggle Adaptive Difficulty and Confidence-Weighted Scoring per exam</li>
+                        <li>View class-wide analytics: pass %, question-wise difficulty, concept heatmaps</li>
+                    </ul>
+                    <a class="btn btn-brand" asp-controller="AccountController" asp-action="Register">Set up an exam</a>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="role-card">
+                    <span class="role-kicker">For Students</span>
+                    <h3>Attempt and track progress</h3>
+                    <ul>
+                        <li>Take timed exams with a live, server-verified countdown</li>
+                        <li>Tag your confidence on each answer where enabled</li>
+                        <li>Get a calibration report and weak-concept map after every result</li>
+                    </ul>
+                    <a class="btn btn-outline-dark" asp-controller="AccountController" asp-action="Login">Log in to attempt</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==========================================================================
+     CTA BAND
+     ========================================================================== -->
+<section class="section section-paper-dim">
+    <div class="container">
+        <div class="cta-band">
+            <h2>Ready to run a smarter exam?</h2>
+            <p>Set up your question bank once, then reuse it across standard, adaptive, or confidence-weighted exams in a few clicks.</p>
+            <a class="btn-hero-primary" asp-controller="AccountController" asp-action="Register">Get Started Free</a>
+        </div>
+    </div>
+</section> *@
