@@ -145,3 +145,5 @@ C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Web\obj\Debug\net8.0\refint\Cogn
 C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Web\obj\Debug\net8.0\Cognify.Web.pdb
 C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Web\obj\Debug\net8.0\Cognify.Web.genruntimeconfig.cache
 C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Web\obj\Debug\net8.0\ref\Cognify.Web.dll
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Web\obj\Debug\net8.0\Cognify.Web.sourcelink.json
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Web\obj\Debug\net8.0\swae.build.ex.cache

@@ -15,3 +15,4 @@ C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\obj\Debug\net8.0\Cognif
 C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\obj\Debug\net8.0\refint\Cognify.Services.dll
 C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\obj\Debug\net8.0\Cognify.Services.pdb
 C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\obj\Debug\net8.0\ref\Cognify.Services.dll
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Services\obj\Debug\net8.0\Cognify.Services.sourcelink.json

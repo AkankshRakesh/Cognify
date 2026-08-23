@@ -9,3 +9,4 @@ C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Core\obj\Debug\net8.0\Cognify.Co
 C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Core\obj\Debug\net8.0\refint\Cognify.Core.dll
 C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Core\obj\Debug\net8.0\Cognify.Core.pdb
 C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Core\obj\Debug\net8.0\ref\Cognify.Core.dll
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Core\obj\Debug\net8.0\Cognify.Core.sourcelink.json

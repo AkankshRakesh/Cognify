@@ -1,6 +1,7 @@
 @model HomeIndexVM
 @{
     ViewData["Title"] = "Home";
+    ViewData["NoScroll"] = true;
 }
 
 <!-- ==========================================================================
@@ -29,27 +30,6 @@
             </a>
         </div>
 
-        <div class="hero-stats">
-            <div class="hero-stat">
-                <span class="num">@Model.TotalExamsConducted</span>
-                <span class="label">Exams Conducted</span>
-            </div>
-
-            <div class="hero-stat">
-                <span class="num">@Model.TotalQuestionsInBank.ToString("N0")</span>
-                <span class="label">Questions in Bank</span>
-            </div>
-
-            <div class="hero-stat">
-                <span class="num">@Model.TotalStudentsRegistered.ToString("N0")</span>
-                <span class="label">Students</span>
-            </div>
-
-            <div class="hero-stat">
-                <span class="num">@Model.AveragePassPercentage.ToString("0.0")%</span>
-                <span class="label">Avg. Pass Rate</span>
-            </div>
-        </div>
     </div>
 </section>
 

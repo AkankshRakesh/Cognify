@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Cognify.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bc67eabd936f61965941a9fe9adac134fdab69c0")]
 [assembly: System.Reflection.AssemblyProductAttribute("Cognify.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Cognify.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
