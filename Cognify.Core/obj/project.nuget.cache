@@ -1,8 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "o3Ier5mJZ5E=",
+  "dgSpecHash": "xxT7nSk/H8Y=",
   "success": true,
   "projectFilePath": "C:\\Users\\Akanksh Rakesh\\Desktop\\Cognify\\Cognify.Core\\Cognify.Core.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "C:\\Users\\Akanksh Rakesh\\.nuget\\packages\\microsoft.netcore.app.ref\\8.0.30\\microsoft.netcore.app.ref.8.0.30.nupkg.sha512",
+    "C:\\Users\\Akanksh Rakesh\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.30\\microsoft.windowsdesktop.app.ref.8.0.30.nupkg.sha512",
+    "C:\\Users\\Akanksh Rakesh\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\8.0.30\\microsoft.aspnetcore.app.ref.8.0.30.nupkg.sha512"
+  ],
   "logs": []
 }

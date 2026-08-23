@@ -1,4 +1,58 @@
-// Lightweight ambient interaction for the hero mock exam card:
+// ==========================================================================
+// PAGE TRANSITIONS - JS fallback for browsers without native View Transitions
+// (Chrome/Edge 126+ get the CSS-only crossfade in site.css and never touch this).
+// Intercepts same-origin link clicks and form gets, fades #page-content out,
+// then performs the real navigation so it doesn't feel like a hard cut.
+// ==========================================================================
+(function () {
+  const supportsNativeViewTransitions =
+    "startViewTransition" in document || CSS.supports("navigation", "auto");
+
+  if (supportsNativeViewTransitions) return; // let the browser handle it natively
+
+  const content = document.getElementById("page-content");
+  if (!content) return;
+
+  const FADE_MS = 220;
+
+  function isSameOriginNavigableLink(anchor) {
+    if (!anchor || !anchor.href) return false;
+    if (anchor.target && anchor.target !== "_self") return false;
+    if (anchor.hasAttribute("download")) return false;
+    if (anchor.getAttribute("href")?.startsWith("#")) return false;
+    try {
+      const url = new URL(anchor.href, window.location.href);
+      return url.origin === window.location.origin;
+    } catch {
+      return false;
+    }
+  }
+
+  document.addEventListener("click", function (e) {
+    const anchor = e.target.closest("a");
+    if (!isSameOriginNavigableLink(anchor)) return;
+
+    e.preventDefault();
+    content.classList.add("is-leaving");
+    setTimeout(() => { window.location.href = anchor.href; }, FADE_MS);
+  });
+
+  // Also fade out on same-origin form submissions (e.g. the Logout button)
+  document.addEventListener("submit", function (e) {
+    const form = e.target;
+    if (form.tagName !== "FORM") return;
+    try {
+      const url = new URL(form.action || window.location.href, window.location.href);
+      if (url.origin !== window.location.origin) return;
+    } catch { return; }
+
+    e.preventDefault();
+    content.classList.add("is-leaving");
+    setTimeout(() => form.submit(), FADE_MS);
+  });
+})();
+
+
 // cycles the "selected" option and confidence pill to imply a live exam,
 // purely decorative (no real exam logic lives here).
 document.addEventListener("DOMContentLoaded", function () {

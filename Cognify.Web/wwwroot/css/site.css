@@ -73,6 +73,12 @@ a { text-decoration: none; color: inherit; }
   font-size: 1.35rem;
   color: var(--text-onink) !important;
 }
+.navbar-logo {
+    height: 38px;        /* fits inside the navbar */
+    width: auto;         /* preserves logo proportions */
+    object-fit: contain;
+    display: inline;
+}
 .brand-mark {
   background: var(--amber);
   color: var(--ink);
@@ -627,4 +633,91 @@ a { text-decoration: none; color: inherit; }
   .exam-card { transform: none; margin-top: 40px; }
   .exam-card::after { display: none; }
   .cta-band { padding: 40px 24px; }
+}
+
+/* ==========================================================================
+   NO-SCROLL HOME (hero-only landing)
+   ========================================================================== */
+
+/* Locks the viewport so the page can't scroll at all. Applied only to
+   pages that set ViewData["NoScroll"] = true (currently just Home/Index). */
+html.no-scroll,
+body.no-scroll {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* The sticky header normally takes up its own space in the document flow,
+   which - stacked on top of the hero's 100vh - is what was pushing the
+   page taller than the viewport and causing the scrollbar. On the
+   no-scroll page, float the header over the hero instead so it adds
+   zero height to the flow; the hero's dark overlay keeps nav text readable. */
+body.no-scroll .site-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: transparent;
+  border-bottom: none;
+}
+
+body.no-scroll #page-content,
+body.no-scroll main {
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   PAGE TRANSITIONS
+   ========================================================================== */
+
+/* Native cross-document View Transitions (Chrome/Edge 126+).
+   Opts every same-origin navigation into an automatic crossfade.
+   Browsers that don't support this simply ignore the rule - no harm done. */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root) {
+  animation: cognify-fade-out 0.35s ease-in both;
+}
+::view-transition-new(root) {
+  animation: cognify-fade-in 0.35s ease-out both;
+}
+
+@keyframes cognify-fade-out {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(1.01); }
+}
+@keyframes cognify-fade-in {
+  from { opacity: 0; transform: scale(0.99); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ---------- JS fallback (Firefox / Safari / older browsers) ----------
+   Applied by site.js: fades #page-content out before navigating away,
+   and fades it in on load. Only runs when the browser lacks native support. */
+#page-content {
+  animation: cognify-page-in 0.28s ease-out both;
+}
+#page-content.is-leaving {
+  animation: cognify-page-out 0.22s ease-in both;
+}
+
+@keyframes cognify-page-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes cognify-page-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-8px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root),
+  #page-content,
+  #page-content.is-leaving {
+    animation: none !important;
+  }
 }

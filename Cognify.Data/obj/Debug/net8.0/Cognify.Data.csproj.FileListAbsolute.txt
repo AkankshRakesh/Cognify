@@ -15,3 +15,4 @@ C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Data\obj\Debug\net8.0\refint\Cog
 C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Data\obj\Debug\net8.0\Cognify.Data.pdb
 C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Data\obj\Debug\net8.0\Cognify.Data.genruntimeconfig.cache
 C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Data\obj\Debug\net8.0\ref\Cognify.Data.dll
+C:\Users\Akanksh Rakesh\Desktop\Cognify\Cognify.Data\obj\Debug\net8.0\Cognify.Data.sourcelink.json
