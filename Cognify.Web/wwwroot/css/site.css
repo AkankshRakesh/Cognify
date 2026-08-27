@@ -32,7 +32,16 @@
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Keep scrolling available without displaying browser scrollbars. */
+*::-webkit-scrollbar {
+  display: none;
+}
 
 html, body { scroll-behavior: smooth; }
 
@@ -543,7 +552,7 @@ a { text-decoration: none; color: inherit; }
   padding: 32px;
   height: 100%;
   border: 1px solid var(--line);
-  background: #fff;
+  background: #F4F0E6;
 }
 .role-card .role-kicker {
   font-family: var(--font-mono);
@@ -636,6 +645,66 @@ a { text-decoration: none; color: inherit; }
 }
 
 /* ==========================================================================
+   AUTH PAGES (Login / Register) - pixel-art bg with legibility overlay
+   ========================================================================== */
+.auth-hero-bg {
+  position: relative;
+  min-height: calc(100vh - 56px);
+  min-height: calc(100dvh - 56px);
+  display: flex;
+  align-items: center;
+  padding: 80px 0;
+  background-image: url('/images/login2.gif');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+}
+
+/* Same dark scrim technique as .hero-overlay - without this, text sits
+   directly on a busy, high-contrast pixel pattern and becomes unreadable
+   regardless of what color the text itself is. */
+.auth-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(16,21,43,0.72) 0%, rgba(16,21,43,0.45) 55%, rgba(16,21,43,0.72) 100%);
+  z-index: 1;
+}
+
+.auth-hero-bg .container {
+  position: relative;
+  z-index: 2;
+}
+
+.auth-eyebrow-onbg {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--amber);
+  background: rgba(16,21,43,0.55);
+  border: 1px solid rgba(232,169,59,0.35);
+  padding: 6px 14px;
+  border-radius: 999px;
+}
+
+.auth-title-onbg {
+  color: var(--text-onink);
+  font-size: 1.9rem;
+  margin-top: 16px;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+}
+
+/* Lift the card visually off a busy background - role-card alone
+   (just a 1px border, no shadow) disappears against a textured scene. */
+.auth-hero-bg .role-card {
+  box-shadow: 0 30px 70px rgba(0,0,0,0.45);
+  border-color: rgba(16,21,43,0.08);
+}
+
+/* ==========================================================================
    NO-SCROLL HOME (hero-only landing)
    ========================================================================== */
 
@@ -677,7 +746,7 @@ body.no-scroll main {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: black;
+  background: var(--ink);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -689,6 +758,8 @@ body.no-scroll main {
   pointer-events: all;
 }
 #page-loader img {
+  width: 96px;
+  height: 96px;
   object-fit: contain;
   image-rendering: pixelated; /* keeps a pixel-art loader crisp, harmless otherwise */
 }
