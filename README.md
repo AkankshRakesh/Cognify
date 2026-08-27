@@ -1,7 +1,5 @@
 # Cognify — Online Examination and Auto-Evaluation System
 
-Built for SIH — Smart Education category.
-
 An ASP.NET Core (MVC + Razor) platform for conducting objective (MCQ) exams,
 with two optional diagnostic engines a teacher can toggle independently per exam:
 
