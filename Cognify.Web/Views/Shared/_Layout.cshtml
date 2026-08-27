@@ -10,6 +10,10 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body class="@(ViewData["NoScroll"] as bool? == true ? "no-scroll" : "")">
+    <div id="page-loader" aria-hidden="true">
+        <img src="~/images/loading2.gif" alt="" />
+    </div>
+
     <header class="site-header">
         <nav class="navbar navbar-expand-lg navbar-dark">
             <div class="container">
