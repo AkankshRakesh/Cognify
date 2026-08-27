@@ -1,5 +1,68 @@
 // ==========================================================================
-// PAGE TRANSITIONS - JS fallback for browsers without native View Transitions
+// PAGE LOADER - shows a full-screen gif overlay the instant the user
+// navigates away, and hides it once the destination page has finished
+// loading. Runs in EVERY browser (unlike the crossfade below, which native
+// View Transition browsers skip) because this covers the server/network
+// gap that a crossfade alone doesn't - the loader is the thing visible
+// while Cognify.Web is actually processing the request.
+// ==========================================================================
+(function () {
+  const loader = document.getElementById("page-loader");
+  if (!loader) return;
+
+  function showLoader() {
+    loader.classList.add("active");
+  }
+  function hideLoader() {
+    loader.classList.remove("active");
+  }
+
+  function isSameOriginNavigableLink(anchor) {
+    if (!anchor || !anchor.href) return false;
+    if (anchor.target && anchor.target !== "_self") return false;
+    if (anchor.hasAttribute("download")) return false;
+    if (anchor.getAttribute("href")?.startsWith("#")) return false;
+    try {
+      const url = new URL(anchor.href, window.location.href);
+      return url.origin === window.location.origin;
+    } catch {
+      return false;
+    }
+  }
+
+  document.addEventListener("click", function (e) {
+    const anchor = e.target.closest("a");
+    if (!isSameOriginNavigableLink(anchor)) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // let "open in new tab" etc. through untouched
+
+    e.preventDefault();
+    showLoader();
+    // Let the loader paint on next frame before actually navigating
+    requestAnimationFrame(() => { window.location.href = anchor.href; });
+  });
+
+  document.addEventListener("submit", function (e) {
+    const form = e.target;
+    if (form.tagName !== "FORM") return;
+    try {
+      const url = new URL(form.action || window.location.href, window.location.href);
+      if (url.origin !== window.location.origin) return;
+    } catch { return; }
+
+    showLoader();
+    // form submits natively; no preventDefault needed here
+  });
+
+  // Hide once the new page has fully loaded
+  window.addEventListener("load", hideLoader);
+
+  // Hide immediately if the page was restored from the back/forward cache
+  window.addEventListener("pageshow", function (e) {
+    if (e.persisted) hideLoader();
+  });
+})();
+
+
 // (Chrome/Edge 126+ get the CSS-only crossfade in site.css and never touch this).
 // Intercepts same-origin link clicks and form gets, fades #page-content out,
 // then performs the real navigation so it doesn't feel like a hard cut.
