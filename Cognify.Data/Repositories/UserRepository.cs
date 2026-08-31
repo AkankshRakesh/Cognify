@@ -8,11 +8,17 @@ namespace Cognify.Data.Repositories
         private readonly AppDbContext _context;
         public UserRepository(AppDbContext context) => _context = context;
 
-        public async Task<User?> GetByEmailAsync(string email) =>
-            await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
+        public async Task<User?> GetByEmailAsync(string email)
+        {
+            var normalizedEmail = email.Trim();
+            return await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail.ToLower());
+        }
 
-        public async Task<bool> EmailExistsAsync(string email) =>
-            await _context.Users.AnyAsync(u => u.Email.ToLower() == email.ToLower());
+        public async Task<bool> EmailExistsAsync(string email)
+        {
+            var normalizedEmail = email.Trim();
+            return await _context.Users.AnyAsync(u => u.Email.ToLower() == normalizedEmail.ToLower());
+        }
 
         public async Task<User> AddAsync(User user)
         {

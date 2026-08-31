@@ -76,8 +76,6 @@ namespace Cognify.Web.Controllers
 
             var user = await _userRepository.GetByEmailAsync(model.Email);
 
-            // Deliberately vague error - never reveal whether the email or the
-            // password was the wrong part, to avoid leaking which emails are registered.
             if (user == null || !PasswordHasher.Verify(model.Password, user.PasswordHash))
             {
                 ModelState.AddModelError(string.Empty, "Invalid email or password.");

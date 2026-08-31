@@ -19,6 +19,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.ExpireTimeSpan = TimeSpan.FromDays(1);
         options.SlidingExpiration = true;
     });
+
+builder.Services.AddAuthorization();
     
 // ---- Database (SQL Server via EF Core) ----
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -47,6 +49,21 @@ builder.Services.AddScoped<ScoringServiceFactory>();
 builder.Services.AddScoped<UserRepository>();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    try
+    {
+        db.Database.EnsureCreated();
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Database initialization failed during startup.");
+        throw;
+    }
+}
 
 // ---- Middleware pipeline ----
 if (!app.Environment.IsDevelopment())
