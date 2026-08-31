@@ -1,9 +1,11 @@
+using System.ComponentModel.DataAnnotations;
 using Cognify.Core.Enums;
 
 namespace Cognify.Core.Entities
 {
     public class ExamAttempt
     {
+        [Key]
         public int AttemptId { get; set; }
         public int ExamId { get; set; }
         public Exam? Exam { get; set; }

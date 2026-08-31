@@ -1,0 +1,18 @@
+/* Account login and registration pages */
+.auth-hero-bg {
+  position: relative;
+  min-height: calc(100vh - 56px);
+  min-height: calc(100dvh - 56px);
+  display: flex;
+  align-items: center;
+  padding: 80px 0;
+  background-image: url('/images/login2.gif');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+}
+.auth-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(16,21,43,0.72) 0%, rgba(16,21,43,0.45) 55%, rgba(16,21,43,0.72) 100%); z-index: 1; }
+.auth-hero-bg .container { position: relative; z-index: 2; }
+.auth-eyebrow-onbg { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.76rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--amber); background: rgba(16,21,43,0.55); border: 1px solid rgba(232,169,59,0.35); padding: 6px 14px; border-radius: 999px; }
+.auth-title-onbg { color: var(--text-onink); font-size: 1.9rem; margin-top: 16px; text-shadow: 0 2px 12px rgba(0,0,0,0.5); }
+.auth-hero-bg .role-card { box-shadow: 0 30px 70px rgba(0,0,0,0.45); border-color: rgba(16,21,43,0.08); }
