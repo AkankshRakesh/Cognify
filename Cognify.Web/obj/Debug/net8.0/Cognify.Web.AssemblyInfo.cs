@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Cognify.Web")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+079d94da278cb66df46a3d292aa756df19e3347d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+58dbbf38ff970b518c8e1ca095943e4817ac98bf")]
 [assembly: System.Reflection.AssemblyProductAttribute("Cognify.Web")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Cognify.Web")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

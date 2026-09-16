@@ -2,11 +2,11 @@
   "profiles": {
     "Cognify.Web": {
       "commandName": "Project",
-      "launchBrowser": true,
+      "launchBrowser": false,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "applicationUrl": "https://localhost:58383;http://localhost:58384"
+      "applicationUrl": "https://localhost:58383"
     }
   }
 }
