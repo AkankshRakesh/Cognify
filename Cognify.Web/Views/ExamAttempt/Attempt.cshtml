@@ -1,7 +1,121 @@
+@model Cognify.Web.ViewModels.ExamAttemptVM
 @{
-    ViewData["Title"] = "Attempt";
+    ViewData["Title"] = "Exam: " + Model.ExamTitle;
 }
-<div class="container section">
-    <h1 class="section-title">ExamAttempt &mdash; Attempt</h1>
-    <p class="section-sub">TODO: implement this view.</p>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+    <style>
+        .exam-option {
+            background: var(--d-panel-2, #1d2639);
+            border: 2px solid var(--d-line, #2c3855);
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border-radius: 4px;
+        }
+        .exam-option:hover {
+            border-color: var(--d-amber, #f5b83d);
+            background: #232e44;
+        }
+        .exam-option input[type="radio"] {
+            transform: scale(1.3);
+            accent-color: var(--d-amber, #f5b83d);
+        }
+        .confidence-box {
+            background: rgba(46, 196, 182, 0.08);
+            border: 1px dashed var(--d-teal, #2ec4b6);
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+    </style>
+}
+
+<div class="dash">
+    <div class="container dash-wrap">
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <a asp-controller="Dashboard" asp-action="Index" class="text-decoration-none text-muted small">&larr; Exit to Dashboard</a>
+                <h1 class="h3 fw-bold mt-2 text-white">@Model.ExamTitle</h1>
+            </div>
+            <div class="text-end">
+                <span class="badge bg-warning text-dark fs-6 px-3 py-2">Question @Model.CurrentQuestionNumber</span>
+            </div>
+        </div>
+
+        <form asp-controller="ExamAttempt" asp-action="SubmitAnswer" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="AttemptId" value="@Model.AttemptId" />
+            <input type="hidden" name="QuestionId" value="@Model.QuestionId" />
+
+            <div class="px mb-4">
+                <h2 class="h5 fw-bold text-white mb-4">@Model.QuestionText</h2>
+
+                <label class="exam-option d-block">
+                    <input type="radio" name="SelectedOption" value="A" required />
+                    <strong class="text-warning">A.</strong>
+                    <span>@Model.OptionA</span>
+                </label>
+
+                <label class="exam-option d-block">
+                    <input type="radio" name="SelectedOption" value="B" required />
+                    <strong class="text-warning">B.</strong>
+                    <span>@Model.OptionB</span>
+                </label>
+
+                @if (!string.IsNullOrEmpty(Model.OptionC))
+                {
+                    <label class="exam-option d-block">
+                        <input type="radio" name="SelectedOption" value="C" required />
+                        <strong class="text-warning">C.</strong>
+                        <span>@Model.OptionC</span>
+                    </label>
+                }
+
+                @if (!string.IsNullOrEmpty(Model.OptionD))
+                {
+                    <label class="exam-option d-block">
+                        <input type="radio" name="SelectedOption" value="D" required />
+                        <strong class="text-warning">D.</strong>
+                        <span>@Model.OptionD</span>
+                    </label>
+                }
+
+                @if (Model.ShowConfidenceSlider)
+                {
+                    <div class="confidence-box">
+                        <h6 class="fw-bold text-info mb-2">&#x25C8; Confidence-Weighted Assessment</h6>
+                        <p class="small text-muted mb-3">How confident are you in this answer? High confidence increases marks if correct, but penalizes if wrong.</p>
+                        
+                        <div class="d-flex gap-4">
+                            <label class="d-flex align-items-center gap-2 text-light">
+                                <input type="radio" name="ConfidenceLevel" value="Low" />
+                                <span>Low Confidence (75% / -25%)</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2 text-light">
+                                <input type="radio" name="ConfidenceLevel" value="Medium" checked />
+                                <span>Medium Confidence (100% / -50%)</span>
+                            </label>
+                            <label class="d-flex align-items-center gap-2 text-light">
+                                <input type="radio" name="ConfidenceLevel" value="High" />
+                                <span>High Confidence (150% / -100%)</span>
+                            </label>
+                        </div>
+                    </div>
+                }
+
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <a asp-controller="Dashboard" asp-action="Index" class="btn btn-outline-secondary">Leave Exam</a>
+                    <button type="submit" class="px-btn">Next Question &rarr;</button>
+                </div>
+            </div>
+        </form>
+
+    </div>
 </div>

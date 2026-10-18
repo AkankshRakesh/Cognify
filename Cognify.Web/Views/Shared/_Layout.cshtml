@@ -27,7 +27,7 @@
                 </button>
                 <div class="collapse navbar-collapse" id="navMain">
                     <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
-                        @if (User.Identity.IsAuthenticated)
+                        @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item">
                                 <a class="btn btn-outline-light btn-sm px-3" asp-controller="Dashboard" asp-action="Index">Dashboard</a>

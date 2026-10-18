@@ -1,0 +1,195 @@
+/* ==========================================================================
+   Cognify dashboard: pixel / game look. Fonts stay Sora + Inter from layout.
+   Uses your site.css variables (--amber, --teal, --coral) when present.
+   ========================================================================== */
+.dash {
+    --d-bg: #0e1320;
+    --d-panel: #161d2e;
+    --d-panel-2: #1d2639;
+    --d-line: #2c3855;
+    --d-text: #e9edf6;
+    --d-muted: #8f9bb5;
+    --d-amber: var(--amber, #f5b83d);
+    --d-teal: var(--teal, #2ec4b6);
+    --d-coral: var(--coral, #ff6b5e);
+    --px: 3px; /* the "pixel" unit */
+
+    background: var(--d-bg);
+    background-image:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size: 24px 24px;
+    color: var(--d-text);
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height: calc(100vh - 64px);
+    padding: 2.5rem 0 4rem;
+}
+.dash h1, .dash h2, .dash h3, .dash strong, .dash .stat-num { font-family: 'Sora', 'Inter', sans-serif; }
+.dash h3 { font-size: 1.05rem; font-weight: 700; margin: .35rem 0 .15rem; }
+.dash .muted { color: var(--d-muted); font-size: .9rem; }
+
+/* ---------- Pixel panel: notched corners, no radius ---------- */
+.px {
+    --c: var(--d-line);
+    position: relative;
+    background: var(--d-panel);
+    margin: var(--px);
+    margin-bottom: 1.1rem;
+    padding: 1.1rem 1.25rem;
+    box-shadow:
+        0 calc(var(--px) * -1) 0 0 var(--c),
+        0 var(--px) 0 0 var(--c),
+        calc(var(--px) * -1) 0 0 0 var(--c),
+        var(--px) 0 0 0 var(--c);
+    filter: drop-shadow(5px 5px 0 rgba(0,0,0,.45));
+}
+
+.px-title {
+    font-size: .95rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+    margin: 0 0 .9rem;
+    padding-left: .8rem;
+    position: relative;
+}
+.px-title::before {            /* small pixel marker */
+    content: ""; position: absolute; left: 0; top: .28em;
+    width: 8px; height: 8px; background: var(--d-amber);
+    box-shadow: 8px 0 0 -2px var(--d-teal);
+}
+
+/* ---------- Player card ---------- */
+.px-hero {
+    --c: var(--d-amber);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 1.5rem;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+}
+.avatar {
+    width: 84px; height: 84px;
+    display: grid; place-items: center;
+    font: 800 2.2rem 'Sora', sans-serif;
+    color: #1b1300;
+    background: var(--d-amber);
+    box-shadow:
+        inset 6px 6px 0 rgba(255,255,255,.35),
+        inset -6px -6px 0 rgba(0,0,0,.22);
+}
+.hero-hello { margin: 0; color: var(--d-muted); font-size: .9rem; }
+.hero-level { font-size: clamp(1.6rem, 4vw, 2.3rem); font-weight: 800; margin: .1rem 0 .7rem; }
+
+.xp-row { display: flex; align-items: center; gap: .9rem; flex-wrap: wrap; }
+.xp-row .seg-bar { flex: 1 1 220px; }
+.xp-text { font-size: .8rem; color: var(--d-muted); font-variant-numeric: tabular-nums; }
+
+/* Streak */
+.streak { text-align: center; min-width: 84px; }
+.streak strong { display: block; font-size: 2rem; line-height: 1; color: var(--d-coral); }
+.streak small { color: var(--d-muted); font-size: .75rem; }
+.streak-flame { display: inline-flex; align-items: flex-end; gap: 2px; height: 18px; margin-bottom: 6px; }
+.streak-flame i { width: 6px; background: var(--d-coral); display: block; }
+.streak-flame i:nth-child(1) { height: 8px; }
+.streak-flame i:nth-child(2) { height: 18px; background: var(--d-amber); }
+.streak-flame i:nth-child(3) { height: 12px; }
+
+/* ---------- Segmented bars ---------- */
+.seg-bar { display: flex; gap: 3px; }
+.seg-bar span { flex: 1; height: 14px; background: #0a0f1b; box-shadow: inset 0 0 0 1px var(--d-line); }
+.seg-xp span.on { background: var(--d-amber); box-shadow: inset 0 3px 0 rgba(255,255,255,.35); }
+.seg-skill span { height: 10px; }
+.seg-skill.high span.on { background: var(--d-teal); }
+.seg-skill.mid  span.on { background: var(--d-amber); }
+.seg-skill.low  span.on { background: var(--d-coral); }
+
+/* The one orchestrated moment: XP bar fills in on load */
+@keyframes seg-fill { from { opacity: 0; transform: scaleY(.2); } to { opacity: 1; transform: none; } }
+.seg-xp span.on { animation: seg-fill .18s steps(3, end) both; animation-delay: calc(var(--i) * 45ms); }
+
+/* ---------- Stat tiles ---------- */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: .6rem 1.2rem; margin-bottom: 1.8rem; }
+.px-stat { display: flex; flex-direction: column; gap: .2rem; margin-bottom: .5rem; }
+.t-amber { --c: var(--d-amber); } .t-teal { --c: var(--d-teal); } .t-coral { --c: var(--d-coral); }
+.stat-label { font-size: .78rem; color: var(--d-muted); }
+.stat-num { font-size: 2.1rem; font-weight: 800; line-height: 1.1; color: var(--c); font-variant-numeric: tabular-nums; }
+.stat-num small { font-size: 1rem; margin-left: 2px; opacity: .8; }
+.stat-hint { font-size: .72rem; color: var(--d-muted); }
+
+/* ---------- Quests & results ---------- */
+.quest, .result { display: flex; align-items: center; gap: 1rem; }
+.quest { --c: var(--d-line); }
+.quest-body, .result-body { flex: 1; min-width: 0; }
+.quest-meta { margin: 0; font-size: .8rem; color: var(--d-muted); }
+.quest-tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .6rem; }
+
+.tag {
+    font-size: .7rem; font-weight: 600; padding: .15rem .5rem;
+    background: var(--d-panel-2); color: var(--d-text);
+    box-shadow: inset 0 0 0 2px var(--d-line);
+}
+.tag-subject { color: var(--d-muted); }
+.tag-amber { color: var(--d-amber); box-shadow: inset 0 0 0 2px var(--d-amber); }
+.tag-teal  { color: var(--d-teal);  box-shadow: inset 0 0 0 2px var(--d-teal); }
+.tag-xp    { color: #1b1300; background: var(--d-amber); box-shadow: none; }
+
+/* Pixel button with press-down depth */
+.px-btn {
+    --b: var(--d-amber); --bd: #a9791a;
+    display: inline-block; flex-shrink: 0;
+    padding: .65rem 1.3rem; margin-bottom: 4px;
+    font: 700 .88rem 'Sora', sans-serif; text-decoration: none;
+    color: #1b1300; background: var(--b); cursor: pointer;
+    box-shadow:
+        0 -3px 0 0 var(--b), 0 3px 0 0 var(--b), -3px 0 0 0 var(--b), 3px 0 0 0 var(--b),
+        0 7px 0 0 var(--bd);
+    transition: transform .05s steps(1), box-shadow .05s steps(1);
+}
+.px-btn:hover { color: #1b1300; filter: brightness(1.08); }
+.px-btn:active { transform: translateY(4px); box-shadow: 0 -3px 0 0 var(--b), 0 3px 0 0 var(--b), -3px 0 0 0 var(--b), 3px 0 0 0 var(--b); }
+.px-btn:focus-visible { outline: 3px solid var(--d-teal); outline-offset: 6px; }
+.px-btn.is-locked { --b: #2a3348; --bd: #1a2132; color: var(--d-muted); cursor: not-allowed; }
+.px-btn.is-locked:active { transform: none; box-shadow: 0 -3px 0 0 var(--b), 0 3px 0 0 var(--b), -3px 0 0 0 var(--b), 3px 0 0 0 var(--b), 0 7px 0 0 var(--bd); }
+
+/* Result stars: pixel stars from clip-path */
+.stars { display: flex; gap: 4px; }
+.star {
+    width: 20px; height: 20px; background: #0a0f1b;
+    clip-path: polygon(50% 0, 62% 34%, 100% 38%, 70% 60%, 80% 100%, 50% 76%, 20% 100%, 30% 60%, 0 38%, 38% 34%);
+}
+.star.on { background: var(--d-amber); }
+.result-score { text-align: right; }
+.result-score strong { display: block; font-size: 1.2rem; }
+.result-score a { font-size: .78rem; color: var(--d-teal); text-decoration: none; }
+.result-score a:hover { text-decoration: underline; }
+
+/* ---------- Skills ---------- */
+.skills { --c: var(--d-teal); display: grid; gap: 1rem; }
+.skill-head { display: flex; justify-content: space-between; font-size: .85rem; margin-bottom: .35rem; }
+.skill-pct { color: var(--d-muted); font-variant-numeric: tabular-nums; }
+
+/* ---------- Badges ---------- */
+.badge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem .9rem; }
+.badge { --c: var(--d-amber); text-align: center; padding: .9rem .4rem; margin-bottom: .5rem; }
+.badge-glyph { display: block; font-size: 1.6rem; line-height: 1; color: var(--d-amber); }
+.badge-name { display: block; margin-top: .4rem; font-size: .72rem; font-weight: 600; }
+.badge.locked { --c: var(--d-line); filter: grayscale(1) drop-shadow(5px 5px 0 rgba(0,0,0,.45)); opacity: .55; }
+
+/* ---------- Empty ---------- */
+.px-empty { text-align: center; padding: 1.6rem 1rem; border: 0; }
+.px-empty p { margin: 0 0 .2rem; font-weight: 600; }
+.px-empty small { color: var(--d-muted); }
+
+/* ---------- Responsive & motion ---------- */
+@media (max-width: 575.98px) {
+    .px-hero { grid-template-columns: auto 1fr; }
+    .streak { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: .6rem; }
+    .streak strong { font-size: 1.4rem; }
+    .quest { flex-wrap: wrap; }
+    .badge-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .seg-xp span.on { animation: none; }
+    .px-btn { transition: none; }
+}
