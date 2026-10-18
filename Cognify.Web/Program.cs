@@ -55,7 +55,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     try
     {
-        db.Database.EnsureCreated();
+        await Cognify.Services.DbInitializer.InitializeAsync(db);
     }
     catch (Exception ex)
     {

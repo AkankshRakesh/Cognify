@@ -1,7 +1,105 @@
+@model Cognify.Web.ViewModels.ResultSummaryVM
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Exam Results - " + Model.ExamTitle;
+    var percentage = Model.TotalMarks == 0 ? 0 : (int)Math.Round(Model.TotalScore * 100.0 / Model.TotalMarks);
 }
-<div class="container section">
-    <h1 class="section-title">Result &mdash; Details</h1>
-    <p class="section-sub">TODO: implement this view.</p>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+}
+
+<div class="dash">
+    <div class="container dash-wrap">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <a asp-controller="Dashboard" asp-action="Index" class="text-decoration-none text-muted small">&larr; Back to Dashboard</a>
+                <h1 class="h3 fw-bold mt-2 text-white">@Model.ExamTitle</h1>
+                <p class="muted">Performance Report & Calibration Analysis</p>
+            </div>
+            <div>
+                <a asp-controller="Dashboard" asp-action="Index" class="px-btn">Dashboard</a>
+            </div>
+        </div>
+
+        <!-- ===== STAT SUMMARY TILES ===== -->
+        <section class="stat-grid mb-4" aria-label="Exam Results">
+            <div class="px px-stat t-amber">
+                <span class="stat-label">Final Score</span>
+                <span class="stat-num">@Model.TotalScore.ToString("0.#")<small>/@Model.TotalMarks</small></span>
+                <span class="stat-hint">Score: @percentage%</span>
+            </div>
+            <div class="px px-stat t-teal">
+                <span class="stat-label">Correct Answers</span>
+                <span class="stat-num">@Model.CorrectCount</span>
+                <span class="stat-hint">@Model.WrongCount incorrect &middot; @Model.UnattemptedCount skipped</span>
+            </div>
+            @if (Model.HasCalibrationReport)
+            {
+                <div class="px px-stat t-coral">
+                    <span class="stat-label">Confidence Metrics</span>
+                    <span class="stat-num">@((100 - (Model.OverconfidenceIndex + Model.UnderconfidenceIndex)/2).ToString("0"))<small>%</small></span>
+                    <span class="stat-hint">Over: @Model.OverconfidenceIndex% &middot; Under: @Model.UnderconfidenceIndex%</span>
+                </div>
+            }
+        </section>
+
+        <div class="row g-4">
+            <!-- ===== CONCEPT MAP ===== -->
+            <div class="col-lg-7">
+                <h2 class="px-title">Concept Mastery Breakdown</h2>
+                <div class="px skills">
+                    @if (!Model.ConceptMap.Any())
+                    {
+                        <p class="muted m-0">No specific concept tags recorded for this assessment.</p>
+                    }
+                    @foreach (var c in Model.ConceptMap)
+                    {
+                        var on = (int)Math.Round(c.AccuracyPercent / 10.0);
+                        var tone = c.AccuracyPercent < 40 ? "low" : c.AccuracyPercent < 70 ? "mid" : "high";
+                        <div class="skill mb-3">
+                            <div class="skill-head">
+                                <span>@c.ConceptName</span>
+                                <span class="skill-pct">@c.AccuracyPercent%</span>
+                            </div>
+                            <div class="seg-bar seg-skill @tone" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@c.AccuracyPercent" aria-label="@c.ConceptName accuracy">
+                                @for (var i = 0; i < 10; i++)
+                                {
+                                    <span class="@(i < on ? "on" : "")"></span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- ===== DETAILS SIDEBAR ===== -->
+            <div class="col-lg-5">
+                <h2 class="px-title">Confidence Calibration</h2>
+                <div class="px">
+                    @if (Model.HasCalibrationReport)
+                    {
+                        <div class="mb-3">
+                            <strong>Overconfidence Index: @Model.OverconfidenceIndex%</strong>
+                            <p class="small text-muted mt-1">Percentage of incorrect responses submitted with High confidence.</p>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Underconfidence Index: @Model.UnderconfidenceIndex%</strong>
+                            <p class="small text-muted mt-1">Percentage of correct responses submitted with Low confidence.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="muted m-0">This exam did not have confidence-weighted scoring enabled.</p>
+                    }
+                </div>
+
+                <div class="px mt-3 text-center">
+                    <p class="muted mb-3">Ready to attempt your next challenge?</p>
+                    <a asp-controller="Dashboard" asp-action="Index" class="px-btn d-inline-block">Return to Active Quests</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
 </div>

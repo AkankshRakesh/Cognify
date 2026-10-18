@@ -12,10 +12,12 @@ namespace Cognify.Web.Controllers
     public class AccountController : Controller
     {
         private readonly UserRepository _userRepository;
+        private readonly Cognify.Data.AppDbContext _context;
 
-        public AccountController(UserRepository userRepository)
+        public AccountController(UserRepository userRepository, Cognify.Data.AppDbContext context)
         {
             _userRepository = userRepository;
+            _context = context;
         }
 
         // GET: /Account/Register
@@ -23,7 +25,7 @@ namespace Cognify.Web.Controllers
         public IActionResult Register()
         {
             if (User.Identity?.IsAuthenticated == true)
-                return RedirectToAction("Index", "Home");
+                return RedirectToAction("Index", "Dashboard");
 
             return View(new RegisterVM());
         }
@@ -52,8 +54,11 @@ namespace Cognify.Web.Controllers
 
             await _userRepository.AddAsync(user);
 
+            // Assign initial data to the new account in the database
+            await DbInitializer.EnsureUserInitializedAsync(_context, user.UserId);
+
             await SignInAsync(user);
-            return RedirectToAction("Index", "Home");
+            return RedirectToAction("Index", "Dashboard");
         }
 
         // GET: /Account/Login
@@ -82,12 +87,14 @@ namespace Cognify.Web.Controllers
                 return View(model);
             }
 
+            await DbInitializer.EnsureUserInitializedAsync(_context, user.UserId);
+
             await SignInAsync(user, model.RememberMe);
 
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
                 return Redirect(model.ReturnUrl);
 
-            return RedirectToAction("Index", "Home");
+            return RedirectToAction("Index", "Dashboard");
         }
 
         // POST: /Account/Logout

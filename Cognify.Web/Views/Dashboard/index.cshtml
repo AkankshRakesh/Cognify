@@ -1,7 +1,168 @@
+@model DashboardVM
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Dashboard";
+    var xpSegs = 20;
+    var xpOn = Model.XpToNext == 0 ? 0 : (int)Math.Round(Model.Xp * (double)xpSegs / Model.XpToNext);
+    var firstName = (Model.FullName ?? "").Split(' ')[0];
 }
-<div class="container section">
-    <h1 class="section-title">Analytics &mdash; Index</h1>
-    <p class="section-sub">TODO: implement this view.</p>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+}
+
+<div class="dash">
+    <div class="container dash-wrap">
+
+        <!-- ===== PLAYER CARD ===== -->
+        <section class="px px-hero">
+            <div class="avatar" aria-hidden="true">@(string.IsNullOrEmpty(firstName) ? "?" : firstName[0].ToString().ToUpper())</div>
+
+            <div class="hero-main">
+                <p class="hero-hello">Welcome back, @firstName</p>
+                <h1 class="hero-level">Level @Model.Level</h1>
+
+                <div class="xp-row">
+                    <div class="seg-bar seg-xp" role="progressbar" aria-valuemin="0" aria-valuemax="@Model.XpToNext" aria-valuenow="@Model.Xp" aria-label="Experience points">
+                        @for (var i = 0; i < xpSegs; i++)
+                        {
+                            <span class="@(i < xpOn ? "on" : "")" style="--i:@i"></span>
+                        }
+                    </div>
+                    <span class="xp-text">@Model.Xp / @Model.XpToNext XP</span>
+                </div>
+            </div>
+
+            <div class="streak" title="Days in a row with an attempt">
+                <span class="streak-flame" aria-hidden="true">
+                    <i></i><i></i><i></i>
+                </span>
+                <strong>@Model.StreakDays</strong>
+                <small>day streak</small>
+            </div>
+        </section>
+
+        <!-- ===== STAT TILES ===== -->
+        <section class="stat-grid" aria-label="Your stats">
+            <div class="px px-stat t-amber">
+                <span class="stat-label">Exams taken</span>
+                <span class="stat-num">@Model.ExamsTaken</span>
+            </div>
+            <div class="px px-stat t-teal">
+                <span class="stat-label">Average score</span>
+                <span class="stat-num">@Model.AverageScore.ToString("0")<small>%</small></span>
+            </div>
+            <div class="px px-stat t-coral">
+                <span class="stat-label">Calibration</span>
+                <span class="stat-num">@Model.CalibrationScore.ToString("0")<small>%</small></span>
+                <span class="stat-hint">How well your confidence matches your answers</span>
+            </div>
+        </section>
+
+        <div class="row g-4 mt-1">
+
+            <!-- ===== QUESTS (upcoming exams) ===== -->
+            <div class="col-lg-7">
+                <h2 class="px-title">Active quests</h2>
+
+                @if (!Model.UpcomingExams.Any())
+                {
+                    <div class="px px-empty">
+                        <p>No exams scheduled right now.</p>
+                        <small>When a teacher assigns one, it will show up here.</small>
+                    </div>
+                }
+                @foreach (var q in Model.UpcomingExams)
+                {
+                    <article class="px quest">
+                        <div class="quest-body">
+                            <span class="tag tag-subject">@q.Subject</span>
+                            <h3>@q.Title</h3>
+                            <p class="quest-meta">@q.StartTime.ToString("ddd, dd MMM, hh:mm tt") &middot; @q.DurationMinutes min</p>
+                            <div class="quest-tags">
+                                @if (q.IsAdaptive) { <span class="tag tag-amber">Adaptive</span> }
+                                @if (q.IsConfidenceWeighted) { <span class="tag tag-teal">Confidence</span> }
+                                <span class="tag tag-xp">+@q.XpReward XP</span>
+                            </div>
+                        </div>
+
+                        @if (q.IsOpenNow)
+                        {
+                            <a class="px-btn" asp-controller="ExamAttempt" asp-action="Start" asp-route-id="@q.ExamId">Start</a>
+                        }
+                        else
+                        {
+                            <span class="px-btn is-locked" aria-disabled="true">Locked</span>
+                        }
+                    </article>
+                }
+
+                <h2 class="px-title mt-4">Recent results</h2>
+                @if (!Model.RecentResults.Any())
+                {
+                    <div class="px px-empty">
+                        <p>No results yet.</p>
+                        <small>Finish your first exam to earn XP and see your report here.</small>
+                    </div>
+                }
+                @foreach (var r in Model.RecentResults)
+                {
+                    <article class="px result">
+                        <div class="stars" aria-label="@r.Stars of 3 stars">
+                            @for (var s = 1; s <= 3; s++)
+                            {
+                                <span class="star @(s <= r.Stars ? "on" : "")"></span>
+                            }
+                        </div>
+                        <div class="result-body">
+                            <h3>@r.Title</h3>
+                            <p class="quest-meta">Submitted @r.SubmittedOn.ToString("dd MMM yyyy")</p>
+                        </div>
+                        <div class="result-score">
+                            <strong>@r.Score/@r.TotalMarks</strong>
+                            <a asp-controller="Result" asp-action="Details" asp-route-examId="@r.ExamId">View report</a>
+                        </div>
+                    </article>
+                }
+            </div>
+
+            <!-- ===== SIDEBAR ===== -->
+            <div class="col-lg-5">
+                <h2 class="px-title">Skill levels</h2>
+                <div class="px skills">
+                    @if (!Model.Concepts.Any())
+                    {
+                        <p class="muted m-0">Your concept mastery appears after your first graded exam.</p>
+                    }
+                    @foreach (var c in Model.Concepts)
+                    {
+                        var on = (int)Math.Round(c.Mastery / 10.0);
+                        var tone = c.Mastery < 40 ? "low" : c.Mastery < 70 ? "mid" : "high";
+                        <div class="skill">
+                            <div class="skill-head">
+                                <span>@c.Name</span>
+                                <span class="skill-pct">@c.Mastery%</span>
+                            </div>
+                            <div class="seg-bar seg-skill @tone" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@c.Mastery" aria-label="@c.Name mastery">
+                                @for (var i = 0; i < 10; i++)
+                                {
+                                    <span class="@(i < on ? "on" : "")"></span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <h2 class="px-title mt-4">Badges</h2>
+                <div class="badge-grid">
+                    @foreach (var b in Model.Badges)
+                    {
+                        <div class="px badge @(b.Unlocked ? "" : "locked")" title="@b.Hint">
+                            <span class="badge-glyph" aria-hidden="true">@b.Glyph</span>
+                            <span class="badge-name">@b.Name</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
