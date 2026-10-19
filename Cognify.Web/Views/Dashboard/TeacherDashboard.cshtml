@@ -1,0 +1,228 @@
+@model Cognify.Web.ViewModels.TeacherDashboardVM
+@{
+    ViewData["Title"] = "Teacher Dashboard";
+    var firstName = (Model.FullName ?? "").Split(' ')[0];
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+    <style>
+        .t-badge {
+            font-size: 0.72rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 2px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        .t-live { background: rgba(46, 196, 182, 0.2); color: var(--d-teal, #2ec4b6); border: 1px solid var(--d-teal, #2ec4b6); }
+        .t-upcoming { background: rgba(245, 184, 61, 0.2); color: var(--d-amber, #f5b83d); border: 1px solid var(--d-amber, #f5b83d); }
+        .t-ended { background: rgba(255, 255, 255, 0.1); color: var(--d-muted, #8f9bb5); border: 1px solid var(--d-line, #2c3855); }
+    </style>
+}
+
+<div class="dash">
+    <div class="container dash-wrap">
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success bg-dark text-success border-success mb-4" role="alert">
+                &#x2714; @TempData["SuccessMessage"]
+            </div>
+        }
+
+        <!-- ===== TEACHER HERO / PORTAL CARD ===== -->
+        <section class="px px-hero">
+            <div class="avatar" aria-hidden="true" style="background:var(--d-teal); color:#062320;">
+                @(string.IsNullOrEmpty(firstName) ? "T" : firstName[0].ToString().ToUpper())
+            </div>
+
+            <div class="hero-main">
+                <p class="hero-hello">Teacher Assessment & Analytics Portal</p>
+                <h1 class="hero-level">Welcome, @Model.FullName</h1>
+                <p class="text-muted small mb-0 mt-1">@Model.Email &middot; Department of Examination & Assessment</p>
+            </div>
+
+            <div>
+                <a asp-controller="Exam" asp-action="Create" class="px-btn" style="--btn-bg:var(--d-amber);">+ Create New Exam</a>
+            </div>
+        </section>
+
+        <!-- ===== ANALYTICAL STAT TILES ===== -->
+        <section class="stat-grid" aria-label="Assessment Analytics">
+            <div class="px px-stat t-amber">
+                <span class="stat-label">Exams Created</span>
+                <span class="stat-num">@Model.TotalExamsCreated</span>
+                <span class="stat-hint">@Model.ActiveExamsCount currently active</span>
+            </div>
+            <div class="px px-stat t-teal">
+                <span class="stat-label">Submissions Reviewed</span>
+                <span class="stat-num">@Model.TotalSubmissions</span>
+                <span class="stat-hint">Total student attempts</span>
+            </div>
+            <div class="px px-stat t-coral">
+                <span class="stat-label">Class Average Score</span>
+                <span class="stat-num">@Model.AverageClassScore.ToString("0")<small>%</small></span>
+                <span class="stat-hint">Overall student proficiency</span>
+            </div>
+            <div class="px px-stat t-teal">
+                <span class="stat-label">Calibration Index</span>
+                <span class="stat-num">@Model.AverageCalibrationScore.ToString("0")<small>%</small></span>
+                <span class="stat-hint">Confidence vs correctness</span>
+            </div>
+        </section>
+
+        <div class="row g-4 mt-1">
+
+            <!-- ===== MAIN COLUMN: EXAM MANAGEMENT ===== -->
+            <div class="col-lg-7">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h2 class="px-title m-0">Authored Assessments</h2>
+                    <a asp-controller="Exam" asp-action="Create" class="text-warning small text-decoration-none fw-semibold">+ New Exam</a>
+                </div>
+
+                @if (!Model.Exams.Any())
+                {
+                    <div class="px px-empty">
+                        <p>No exams authored yet.</p>
+                        <small>Click "Create New Exam" above to configure your first assessment.</small>
+                    </div>
+                }
+
+                @foreach (var e in Model.Exams)
+                {
+                    <article class="px quest">
+                        <div class="quest-body">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="tag tag-subject">@e.Subject</span>
+                                @if (e.IsActive)
+                                {
+                                    <span class="t-badge t-live">Active</span>
+                                }
+                                else if (e.IsUpcoming)
+                                {
+                                    <span class="t-badge t-upcoming">Upcoming</span>
+                                }
+                                else
+                                {
+                                    <span class="t-badge t-ended">Concluded</span>
+                                }
+                            </div>
+
+                            <h3>@e.Title</h3>
+                            <p class="quest-meta">
+                                @e.DurationMinutes min &middot; @e.QuestionCount questions &middot; @e.TotalMarks marks total
+                            </p>
+
+                            <div class="quest-tags">
+                                @if (e.IsAdaptive) { <span class="tag tag-amber">Adaptive</span> }
+                                @if (e.IsConfidenceWeighted) { <span class="tag tag-teal">Confidence Weighted</span> }
+                                <span class="tag tag-xp">@e.AttemptsCount Submissions</span>
+                                <span class="tag" style="background:#232e44; color:#fff;">Avg: @e.AverageScore.ToString("0")%</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            @if (e.AttemptsCount > 0)
+                            {
+                                <a asp-controller="Result" asp-action="Details" asp-route-examId="@e.ExamId" class="px-btn">View Latest</a>
+                            }
+                            else
+                            {
+                                <a asp-controller="ExamAttempt" asp-action="Start" asp-route-id="@e.ExamId" class="btn btn-outline-secondary btn-sm">Preview</a>
+                            }
+                        </div>
+                    </article>
+                }
+
+                <!-- ===== RECENT STUDENT SUBMISSIONS STREAM ===== -->
+                <h2 class="px-title mt-4">Recent Student Submissions</h2>
+                @if (!Model.RecentSubmissions.Any())
+                {
+                    <div class="px px-empty">
+                        <p>No student submissions yet.</p>
+                        <small>When students complete your exams, their performance reports appear here.</small>
+                    </div>
+                }
+                @foreach (var sub in Model.RecentSubmissions)
+                {
+                    <article class="px result">
+                        <div class="result-body">
+                            <strong class="text-white d-block">@sub.StudentName</strong>
+                            <p class="quest-meta m-0">@sub.ExamTitle &middot; Submitted @sub.SubmittedOn.ToString("dd MMM, hh:mm tt")</p>
+                        </div>
+                        <div class="result-score text-end">
+                            <strong class="text-warning">@sub.Score/@sub.TotalMarks (@sub.Percent%)</strong>
+                            <a asp-controller="Result" asp-action="Details" asp-route-attemptId="@sub.AttemptId">View Report</a>
+                        </div>
+                    </article>
+                }
+            </div>
+
+            <!-- ===== SIDEBAR: ANALYTICS & QUESTION BANK ===== -->
+            <div class="col-lg-5">
+
+                <!-- Quick Action Card -->
+                <div class="px mb-4">
+                    <h2 class="px-title">Quick Actions</h2>
+                    <p class="small text-muted mb-3">Launch assessments with auto-evaluation, adaptive difficulty, and calibration tracking.</p>
+                    <div class="d-grid gap-2">
+                        <a asp-controller="Exam" asp-action="Create" class="px-btn text-center d-block">+ Create New Exam</a>
+                    </div>
+                </div>
+
+                <!-- Class Concept Health Analytics -->
+                <h2 class="px-title">Class Concept Health</h2>
+                <div class="px skills mb-4">
+                    @if (!Model.ConceptAnalytics.Any())
+                    {
+                        <p class="muted m-0">Concept analytics will aggregate once students complete graded exams.</p>
+                    }
+                    @foreach (var c in Model.ConceptAnalytics)
+                    {
+                        var on = (int)Math.Round(c.AccuracyPercent / 10.0);
+                        var tone = c.AccuracyPercent < 40 ? "low" : c.AccuracyPercent < 70 ? "mid" : "high";
+                        var statusClass = c.AccuracyPercent >= 75 ? "text-success" : c.AccuracyPercent >= 50 ? "text-warning" : "text-danger";
+
+                        <div class="skill mb-3">
+                            <div class="skill-head">
+                                <span>@c.ConceptName <small class="text-muted">(@c.Subject)</small></span>
+                                <span class="@statusClass fw-semibold">@c.AccuracyPercent% &middot; @c.HealthStatus</span>
+                            </div>
+                            <div class="seg-bar seg-skill @tone" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@c.AccuracyPercent" aria-label="@c.ConceptName accuracy">
+                                @for (var i = 0; i < 10; i++)
+                                {
+                                    <span class="@(i < on ? "on" : "")"></span>
+                                }
+                            </div>
+                            <small class="text-muted">@c.CorrectCount / @c.TotalQuestionsAnswered questions answered correctly</small>
+                        </div>
+                    }
+                </div>
+
+                <!-- Question Bank Summary -->
+                <h2 class="px-title">Question Bank Coverage</h2>
+                <div class="px">
+                    <p class="small text-muted mb-3">Available questions ready for adaptive pools and manual test assembly:</p>
+                    @foreach (var qb in Model.QuestionBankSummary)
+                    {
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary small">
+                            <div>
+                                <strong class="text-light">@qb.ConceptName</strong>
+                                <span class="text-muted d-block" style="font-size:0.75rem;">@qb.Subject</span>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-dark border border-secondary text-light">@qb.TotalQuestions Qs</span>
+                                <span class="text-muted d-block" style="font-size:0.7rem;">E:@qb.EasyCount M:@qb.MediumCount H:@qb.HardCount</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
