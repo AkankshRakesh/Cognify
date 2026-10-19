@@ -1,7 +1,288 @@
+@model Cognify.Web.ViewModels.ExamCreateVM
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Create Assessment";
 }
-<div class="container section">
-    <h1 class="section-title">Exam &mdash; Create</h1>
-    <p class="section-sub">TODO: implement this view.</p>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+    <style>
+        .exam-create-wrap {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+        .form-control-dark, .form-select-dark {
+            background: var(--d-panel-2, #1d2639);
+            border: 2px solid var(--d-line, #2c3855);
+            color: var(--d-text, #e9edf6);
+            padding: 0.75rem 1rem;
+            border-radius: 4px;
+            width: 100%;
+        }
+        .form-control-dark:focus, .form-select-dark:focus {
+            background: #232e44;
+            border-color: var(--d-amber, #f5b83d);
+            color: #fff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(245, 184, 61, 0.2);
+        }
+        .mode-toggle-card {
+            background: var(--d-panel-2, #1d2639);
+            border: 2px solid var(--d-line, #2c3855);
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .mode-toggle-card:hover {
+            border-color: var(--d-teal, #2ec4b6);
+        }
+        .mode-toggle-card.is-active {
+            border-color: var(--d-teal, #2ec4b6);
+            background: rgba(46, 196, 182, 0.08);
+        }
+        .pool-card {
+            background: var(--d-panel-2, #1d2639);
+            border: 1px solid var(--d-line, #2c3855);
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-radius: 4px;
+        }
+        .q-row {
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid var(--d-line, #2c3855);
+            transition: background 0.15s ease;
+        }
+        .q-row:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+    </style>
+}
+
+<div class="dash">
+    <div class="container exam-create-wrap">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <a asp-controller="Dashboard" asp-action="Index" class="text-decoration-none text-muted small">&larr; Return to Teacher Dashboard</a>
+                <h1 class="h3 fw-bold mt-2 text-white">Create New Assessment</h1>
+                <p class="muted">Design, configure, and schedule examinations with adaptive & confidence scoring</p>
+            </div>
+            <div>
+                <a asp-controller="Dashboard" asp-action="Index" class="btn btn-outline-secondary btn-sm">Cancel</a>
+            </div>
+        </div>
+
+        <form asp-controller="Exam" asp-action="Create" method="post" id="examCreateForm">
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4" role="alert"></div>
+
+            <!-- ===== 1. GENERAL INFORMATION ===== -->
+            <div class="px mb-4">
+                <h2 class="px-title">1. Assessment Details</h2>
+
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label asp-for="Title" class="form-label text-light fw-semibold small">Exam Title *</label>
+                        <input asp-for="Title" class="form-control-dark" placeholder="e.g. Data Structures & Algorithms Midterm" required />
+                        <span asp-validation-for="Title" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="Subject" class="form-label text-light fw-semibold small">Subject / Discipline</label>
+                        <input asp-for="Subject" class="form-control-dark" placeholder="e.g. Computer Science" />
+                    </div>
+
+                    <div class="col-12">
+                        <label asp-for="Description" class="form-label text-light fw-semibold small">Description / Instructions</label>
+                        <textarea asp-for="Description" class="form-control-dark" rows="2" placeholder="Briefly specify topics covered, guidelines, and rules for test-takers..."></textarea>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="DurationMinutes" class="form-label text-light fw-semibold small">Duration (Minutes) *</label>
+                        <input asp-for="DurationMinutes" type="number" class="form-control-dark" min="5" max="360" required />
+                        <span asp-validation-for="DurationMinutes" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="StartTime" class="form-label text-light fw-semibold small">Start Window *</label>
+                        <input asp-for="StartTime" type="datetime-local" class="form-control-dark" value="@Model.StartTime.ToString("yyyy-MM-ddTHH:mm")" required />
+                        <span asp-validation-for="StartTime" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="EndTime" class="form-label text-light fw-semibold small">End Window *</label>
+                        <input asp-for="EndTime" type="datetime-local" class="form-control-dark" value="@Model.EndTime.ToString("yyyy-MM-ddTHH:mm")" required />
+                        <span asp-validation-for="EndTime" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== 2. SCORING & ENGINE MODES ===== -->
+            <div class="px mb-4">
+                <h2 class="px-title">2. Assessment Engine & Scoring Features</h2>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="mode-toggle-card d-block" id="adaptiveCard">
+                            <div class="d-flex align-items-start gap-3">
+                                <input type="checkbox" asp-for="EnableAdaptive" class="form-check-input mt-1" id="adaptiveToggle" />
+                                <div>
+                                    <strong class="text-white d-block">Adaptive Difficulty Engine</strong>
+                                    <span class="small text-muted">Dynamically recalibrates question difficulty (Easy / Med / Hard) based on each student's ongoing accuracy per concept.</span>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="mode-toggle-card d-block" id="confidenceCard">
+                            <div class="d-flex align-items-start gap-3">
+                                <input type="checkbox" asp-for="EnableConfidenceWeighted" class="form-check-input mt-1" id="confidenceToggle" />
+                                <div>
+                                    <strong class="text-white d-block">Confidence-Weighted Scoring</strong>
+                                    <span class="small text-muted">Enables meta-cognitive calibration wagers. Well-calibrated confidence awards bonus marks; overconfidence is penalized.</span>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="d-flex align-items-center gap-2 text-light">
+                            <input type="checkbox" asp-for="NegativeMarking" class="form-check-input" />
+                            <span>Apply standard penalty for incorrect answers (-0.25x)</span>
+                        </label>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="d-flex align-items-center gap-2 text-light">
+                            <input type="checkbox" asp-for="ShuffleQuestions" class="form-check-input" />
+                            <span>Shuffle question order for each examinee</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== 3. ADAPTIVE CONCEPT POOLS (Visible when Adaptive is checked) ===== -->
+            <div class="px mb-4" id="adaptivePoolsSection" style="display: @(Model.EnableAdaptive ? "block" : "none");">
+                <h2 class="px-title">3. Adaptive Concept Pools</h2>
+                <p class="muted small mb-3">Configure how many questions per difficulty level the engine draws from each concept area.</p>
+
+                @for (int i = 0; i < Model.ConceptPools.Count; i++)
+                {
+                    <div class="pool-card">
+                        <input type="hidden" name="ConceptPools[@i].ConceptTagId" value="@Model.ConceptPools[i].ConceptTagId" />
+                        <input type="hidden" name="ConceptPools[@i].ConceptName" value="@Model.ConceptPools[i].ConceptName" />
+                        <input type="hidden" name="ConceptPools[@i].Subject" value="@Model.ConceptPools[i].Subject" />
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <strong class="text-warning">@Model.ConceptPools[i].ConceptName</strong>
+                            <span class="badge bg-secondary">@Model.ConceptPools[i].Subject</span>
+                        </div>
+
+                        <div class="row g-2 align-items-center text-muted small">
+                            <div class="col-md-4">
+                                <label class="form-label m-0">Easy Questions (Avail: @Model.ConceptPools[i].AvailableEasy)</label>
+                                <input type="number" name="ConceptPools[@i].EasyCount" class="form-control-dark form-control-sm" min="0" max="@Model.ConceptPools[i].AvailableEasy" value="@Model.ConceptPools[i].EasyCount" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label m-0">Medium Questions (Avail: @Model.ConceptPools[i].AvailableMedium)</label>
+                                <input type="number" name="ConceptPools[@i].MediumCount" class="form-control-dark form-control-sm" min="0" max="@Model.ConceptPools[i].AvailableMedium" value="@Model.ConceptPools[i].MediumCount" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label m-0">Hard Questions (Avail: @Model.ConceptPools[i].AvailableHard)</label>
+                                <input type="number" name="ConceptPools[@i].HardCount" class="form-control-dark form-control-sm" min="0" max="@Model.ConceptPools[i].AvailableHard" value="@Model.ConceptPools[i].HardCount" />
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- ===== 4. QUESTION SELECTION ===== -->
+            <div class="px mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h2 class="px-title m-0">Question Bank Selection</h2>
+                    <span class="small text-muted" id="selectedCountText">0 questions selected</span>
+                </div>
+                <p class="muted small mb-3">Select the questions included in this examination. If Adaptive Engine is active, questions will be grouped into the respective difficulty pools.</p>
+
+                <div class="border border-secondary rounded overflow-hidden" style="max-height: 400px; overflow-y: auto;">
+                    @for (int i = 0; i < Model.AvailableQuestions.Count; i++)
+                    {
+                        var q = Model.AvailableQuestions[i];
+                        var diffTone = q.DifficultyLevel == Cognify.Core.Enums.DifficultyLevel.Easy ? "text-success" :
+                                       q.DifficultyLevel == Cognify.Core.Enums.DifficultyLevel.Medium ? "text-warning" : "text-danger";
+
+                        <div class="q-row d-flex align-items-center gap-3">
+                            <input type="checkbox" name="SelectedQuestionIds" value="@q.QuestionId" class="form-check-input q-checkbox" id="q_@q.QuestionId" @(q.IsSelected ? "checked" : "") />
+                            <div class="flex-grow-1">
+                                <label for="q_@q.QuestionId" class="text-light d-block m-0 small fw-semibold" style="cursor:pointer;">
+                                    @q.Text
+                                </label>
+                                <div class="d-flex gap-3 mt-1 small">
+                                    <span class="text-muted">Concept: <strong class="text-light">@q.ConceptName</strong></span>
+                                    <span class="@diffTone fw-semibold">@q.DifficultyLevel</span>
+                                    <span class="text-muted">Marks: @q.Marks</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- ===== SUBMIT & ACTIONS ===== -->
+            <div class="d-flex justify-content-between align-items-center mb-5">
+                <a asp-controller="Dashboard" asp-action="Index" class="btn btn-outline-secondary">Discard & Return</a>
+                <button type="submit" class="px-btn">Publish & Schedule Exam &rarr;</button>
+            </div>
+        </form>
+
+    </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const adaptiveToggle = document.getElementById('adaptiveToggle');
+        const adaptivePoolsSection = document.getElementById('adaptivePoolsSection');
+        const adaptiveCard = document.getElementById('adaptiveCard');
+        const confidenceToggle = document.getElementById('confidenceToggle');
+        const confidenceCard = document.getElementById('confidenceCard');
+
+        function updateAdaptiveView() {
+            if (adaptiveToggle.checked) {
+                adaptivePoolsSection.style.display = 'block';
+                adaptiveCard.classList.add('is-active');
+            } else {
+                adaptivePoolsSection.style.display = 'none';
+                adaptiveCard.classList.remove('is-active');
+            }
+        }
+
+        function updateConfidenceView() {
+            if (confidenceToggle.checked) {
+                confidenceCard.classList.add('is-active');
+            } else {
+                confidenceCard.classList.remove('is-active');
+            }
+        }
+
+        adaptiveToggle.addEventListener('change', updateAdaptiveView);
+        confidenceToggle.addEventListener('change', updateConfidenceView);
+        updateAdaptiveView();
+        updateConfidenceView();
+
+        // Update selected questions count
+        const checkboxes = document.querySelectorAll('.q-checkbox');
+        const countDisplay = document.getElementById('selectedCountText');
+
+        function updateCount() {
+            const checked = document.querySelectorAll('.q-checkbox:checked').length;
+            countDisplay.innerText = checked + ' questions selected';
+        }
+
+        checkboxes.forEach(cb => cb.addEventListener('change', updateCount));
+        updateCount();
+    </script>
+}

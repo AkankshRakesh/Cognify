@@ -55,7 +55,7 @@
 .px-title::before {            /* small pixel marker */
     content: ""; position: absolute; left: 0; top: .28em;
     width: 8px; height: 8px; background: var(--d-amber);
-    box-shadow: 8px 0 0 -2px var(--d-teal);
+    /* box-shadow: 8px 0 0 -2px var(--d-teal); */
 }
 
 /* ---------- Player card ---------- */

@@ -94,6 +94,7 @@ a {
   width: auto;
   object-fit: contain;
   display: inline;
+  margin-right: 6px;
 }
 
 .brand-mark {
