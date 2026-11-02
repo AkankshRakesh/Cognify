@@ -35,7 +35,10 @@
                             @if (User.IsInRole("Teacher") || User.IsInRole("Admin"))
                             {
                                 <li class="nav-item">
-                                    <a class="btn btn-warning btn-sm px-3 fw-semibold text-dark" asp-controller="Exam" asp-action="Create">+ New Exam</a>
+                                    <a class="btn btn-outline-info btn-sm px-3" asp-controller="QuestionBank" asp-action="Index">Question Bank</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="btn btn-warning btn-sm px-3 fw-semibold " asp-controller="Exam" asp-action="Create">+ New Exam</a>
                                 </li>
                             }   
                             <li class="nav-item">

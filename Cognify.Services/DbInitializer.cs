@@ -10,6 +10,7 @@ namespace Cognify.Services
         public static async Task InitializeAsync(AppDbContext context)
         {
             await context.Database.EnsureCreatedAsync();
+            await EnsureQuestionSetSchemaAsync(context);
 
             // 1. Seed Concept Tags
             if (!await context.ConceptTags.AnyAsync())
@@ -184,6 +185,22 @@ namespace Cognify.Services
                 await context.SaveChangesAsync();
             }
 
+            // Keep the existing seeded catalog usable with the teacher workflow.
+            if (!await context.QuestionSets.AnyAsync())
+            {
+                var teacherUser = await context.Users.FirstAsync(u => u.Role == UserRole.Teacher);
+                var starterSet = new QuestionSet
+                {
+                    Title = "Starter Question Set",
+                    Description = "Seeded questions available for your first exam.",
+                    Subject = "Mixed subjects",
+                    CreatedByUserId = teacherUser.UserId
+                };
+                starterSet.Questions = await context.Questions.ToListAsync();
+                await context.QuestionSets.AddAsync(starterSet);
+                await context.SaveChangesAsync();
+            }
+
             // 4. Seed Exams
             if (!await context.Exams.AnyAsync())
             {
@@ -319,6 +336,47 @@ namespace Cognify.Services
             {
                 await EnsureUserInitializedAsync(context, user.UserId);
             }
+        }
+
+        private static async Task EnsureQuestionSetSchemaAsync(AppDbContext context)
+        {
+            // EnsureCreated does not change an existing database. This keeps databases
+            // created by earlier versions compatible with the question-set workflow.
+            const string sql = """
+                IF OBJECT_ID(N'[QuestionSets]', N'U') IS NULL
+                BEGIN
+                    CREATE TABLE [QuestionSets]
+                    (
+                        [QuestionSetId] int IDENTITY(1,1) NOT NULL,
+                        [Title] nvarchar(max) NOT NULL,
+                        [Description] nvarchar(max) NULL,
+                        [Subject] nvarchar(max) NOT NULL,
+                        [CreatedByUserId] int NOT NULL,
+                        [CreatedOn] datetime2 NOT NULL,
+                        CONSTRAINT [PK_QuestionSets] PRIMARY KEY ([QuestionSetId])
+                    );
+                END;
+
+                IF COL_LENGTH(N'Questions', N'QuestionSetId') IS NULL
+                    ALTER TABLE [Questions] ADD [QuestionSetId] int NULL;
+
+                IF COL_LENGTH(N'Exams', N'QuestionSetId') IS NULL
+                    ALTER TABLE [Exams] ADD [QuestionSetId] int NULL;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Questions_QuestionSets_QuestionSetId')
+                    ALTER TABLE [Questions] ADD CONSTRAINT [FK_Questions_QuestionSets_QuestionSetId]
+                        FOREIGN KEY ([QuestionSetId]) REFERENCES [QuestionSets] ([QuestionSetId]) ON DELETE SET NULL;
+
+                IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Exams_QuestionSets_QuestionSetId')
+                    ALTER TABLE [Exams] ADD CONSTRAINT [FK_Exams_QuestionSets_QuestionSetId]
+                        FOREIGN KEY ([QuestionSetId]) REFERENCES [QuestionSets] ([QuestionSetId]);
+
+                IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_QuestionSets_Users_CreatedByUserId')
+                    ALTER TABLE [QuestionSets] ADD CONSTRAINT [FK_QuestionSets_Users_CreatedByUserId]
+                        FOREIGN KEY ([CreatedByUserId]) REFERENCES [Users] ([UserId]);
+                """;
+
+            await context.Database.ExecuteSqlRawAsync(sql);
         }
 
         public static async Task EnsureUserInitializedAsync(AppDbContext context, int userId)

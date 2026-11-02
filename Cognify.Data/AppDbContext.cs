@@ -10,6 +10,7 @@ namespace Cognify.Data
         public DbSet<User> Users => Set<User>();
         public DbSet<ConceptTag> ConceptTags => Set<ConceptTag>();
         public DbSet<Question> Questions => Set<Question>();
+        public DbSet<QuestionSet> QuestionSets => Set<QuestionSet>();
         public DbSet<Exam> Exams => Set<Exam>();
         public DbSet<ExamQuestion> ExamQuestions => Set<ExamQuestion>();
         public DbSet<ExamQuestionPool> ExamQuestionPools => Set<ExamQuestionPool>();
@@ -35,6 +36,24 @@ namespace Cognify.Data
                 .HasOne(q => q.ConceptTag)
                 .WithMany(c => c.Questions)
                 .HasForeignKey(q => q.ConceptTagId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Question>()
+                .HasOne(q => q.QuestionSet)
+                .WithMany(s => s.Questions)
+                .HasForeignKey(q => q.QuestionSetId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<QuestionSet>()
+                .HasOne(s => s.CreatedBy)
+                .WithMany()
+                .HasForeignKey(s => s.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Exam>()
+                .HasOne(e => e.QuestionSet)
+                .WithMany(s => s.Exams)
+                .HasForeignKey(e => e.QuestionSetId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<ExamQuestion>()

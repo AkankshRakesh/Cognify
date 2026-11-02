@@ -17,6 +17,9 @@ namespace Cognify.Core.Entities
         public DifficultyLevel DifficultyLevel { get; set; } = DifficultyLevel.Medium;
         public int Marks { get; set; } = 1;
 
+        public int? QuestionSetId { get; set; }
+        public QuestionSet? QuestionSet { get; set; }
+
         // Used by the adaptive engine's live difficulty calibration
         public int TimesAttempted { get; set; }
         public int TimesCorrect { get; set; }

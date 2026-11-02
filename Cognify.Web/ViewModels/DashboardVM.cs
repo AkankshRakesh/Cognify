@@ -21,6 +21,7 @@ public class DashboardVM
 public class QuestVM
 {
     public int ExamId { get; set; }
+    public string ExamToken { get; set; } = "";
     public string Title { get; set; } = "";
     public string Subject { get; set; } = "";
     public DateTime StartTime { get; set; }
@@ -34,7 +35,9 @@ public class QuestVM
 public class ResultVM
 {
     public int AttemptId { get; set; }
+    public string AttemptToken { get; set; } = "";
     public int ExamId { get; set; }
+    public string ExamToken { get; set; } = "";
     public string Title { get; set; } = "";
     public DateTime SubmittedOn { get; set; }
     public int Score { get; set; }

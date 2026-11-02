@@ -45,14 +45,14 @@
                 <h1 class="h3 fw-bold mt-2 text-white">@Model.ExamTitle</h1>
             </div>
             <div class="text-end">
-                <span class="badge bg-warning text-dark fs-6 px-3 py-2">Question @Model.CurrentQuestionNumber</span>
+                <span class="badge bg-warning  fs-6 px-3 py-2">Question @Model.CurrentQuestionNumber</span>
             </div>
         </div>
 
         <form asp-controller="ExamAttempt" asp-action="SubmitAnswer" method="post">
             @Html.AntiForgeryToken()
-            <input type="hidden" name="AttemptId" value="@Model.AttemptId" />
-            <input type="hidden" name="QuestionId" value="@Model.QuestionId" />
+            <input type="hidden" name="AttemptToken" value="@Model.AttemptToken" />
+            <input type="hidden" name="QuestionToken" value="@Model.QuestionToken" />
 
             <div class="px mb-4">
                 <h2 class="h5 fw-bold text-white mb-4">@Model.QuestionText</h2>

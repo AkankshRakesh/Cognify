@@ -4,6 +4,7 @@ using Cognify.Core.Enums;
 using Cognify.Data;
 using Cognify.Services;
 using Cognify.Web.ViewModels;
+using Cognify.Web.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,15 +15,89 @@ namespace Cognify.Web.Controllers
     public class ExamController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly IUrlTokenProtector _urlTokens;
 
-        public ExamController(AppDbContext context)
+        public ExamController(AppDbContext context, IUrlTokenProtector urlTokens)
         {
             _context = context;
+            _urlTokens = urlTokens;
         }
 
         public async Task<IActionResult> Index()
         {
             return RedirectToAction("Index", "Dashboard");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Submissions(string token)
+        {
+            if (!_urlTokens.TryUnprotectExam(token, out var id))
+                return BadRequest("Invalid exam link.");
+
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+            if (user == null || (user.Role != UserRole.Teacher && user.Role != UserRole.Admin))
+                return RedirectToAction("Index", "Dashboard");
+
+            var exam = await _context.Exams
+                .Include(e => e.ExamQuestions).ThenInclude(eq => eq.Question)
+                .FirstOrDefaultAsync(e => e.ExamId == id &&
+                    (user.Role == UserRole.Admin || e.CreatedByUserId == user.UserId));
+            if (exam == null) return RedirectToAction("Index", "Dashboard");
+
+            var attempts = await _context.ExamAttempts
+                .Include(a => a.User)
+                .Include(a => a.Answers).ThenInclude(a => a.Question)
+                .Where(a => a.ExamId == exam.ExamId)
+                .OrderByDescending(a => a.SubmitTime ?? a.StartTime)
+                .ToListAsync();
+
+            var questionOrder = exam.ExamQuestions
+                .OrderBy(eq => eq.SequenceOrder)
+                .Select((eq, index) => new { eq.QuestionId, Number = index + 1 })
+                .ToDictionary(x => x.QuestionId, x => x.Number);
+
+            var submissions = attempts.Select(attempt => new TeacherSubmissionVM
+            {
+                AttemptId = attempt.AttemptId,
+                StudentName = attempt.User?.Name ?? "Student",
+                StudentEmail = attempt.User?.Email ?? string.Empty,
+                Status = attempt.Status == AttemptStatus.AutoSubmitted ? "Auto-submitted" : attempt.Status.ToString(),
+                StartedOn = attempt.StartTime,
+                SubmittedOn = attempt.SubmitTime,
+                Score = attempt.TotalScore,
+                TotalMarks = exam.TotalMarks,
+                CorrectCount = attempt.Answers.Count(a => a.IsCorrect),
+                WrongCount = attempt.Answers.Count(a => !a.IsCorrect && !string.IsNullOrWhiteSpace(a.SelectedOption)),
+                SkippedCount = Math.Max(0, exam.ExamQuestions.Count - attempt.Answers.Count),
+                CalibrationScore = attempt.OverconfidenceIndex.HasValue && attempt.UnderconfidenceIndex.HasValue
+                    ? Math.Round(Math.Max(0, 100 - ((attempt.OverconfidenceIndex.Value + attempt.UnderconfidenceIndex.Value) / 2)), 1)
+                    : null,
+                Answers = attempt.Answers.OrderBy(a => a.SequencePosition).Select(answer => new TeacherSubmissionAnswerVM
+                {
+                    QuestionNumber = questionOrder.TryGetValue(answer.QuestionId, out var number) ? number : answer.SequencePosition,
+                    QuestionText = answer.Question?.Text ?? "Question",
+                    SelectedOption = answer.SelectedOption,
+                    CorrectOption = answer.Question?.CorrectOption ?? string.Empty,
+                    IsCorrect = answer.IsCorrect,
+                    MarksAwarded = answer.MarksAwarded,
+                    Difficulty = answer.DifficultyAtServeTime.ToString()
+                }).ToList()
+            }).ToList();
+
+            return View(new TeacherSubmissionsVM
+            {
+                ExamId = exam.ExamId,
+                ExamTitle = exam.Title,
+                Subject = exam.ExamQuestions.Select(eq => eq.Question?.Subject).FirstOrDefault(s => !string.IsNullOrWhiteSpace(s)) ?? "General",
+                ShareUrl = Url.Action("Start", "ExamAttempt", new { token = _urlTokens.ProtectExam(exam.ExamId) }, Request.Scheme) ?? string.Empty,
+                StartTime = exam.StartTime,
+                EndTime = exam.EndTime,
+                DurationMinutes = exam.DurationMinutes,
+                QuestionCount = exam.ExamQuestions.Count,
+                TotalMarks = exam.TotalMarks,
+                Submissions = submissions
+            });
         }
 
         [HttpGet]
@@ -75,18 +150,19 @@ namespace Cognify.Web.Controllers
                 ModelState.AddModelError(nameof(model.EndTime), "End Time must be after Start Time.");
             }
 
-            if (!model.EnableAdaptive && (model.SelectedQuestionIds == null || !model.SelectedQuestionIds.Any()))
-            {
-                ModelState.AddModelError(string.Empty, "Please select at least one question for the exam, or enable the Adaptive Engine.");
-            }
+            var questionSet = await _context.QuestionSets
+                .Include(s => s.Questions)
+                .FirstOrDefaultAsync(s => s.QuestionSetId == model.QuestionSetId &&
+                    (user.Role == UserRole.Admin || s.CreatedByUserId == user.UserId));
+
+            if (questionSet == null || !questionSet.Questions.Any())
+                ModelState.AddModelError(nameof(model.QuestionSetId), "Please select a question set containing at least one question.");
 
             if (!ModelState.IsValid)
             {
                 await PopulateExamCreationDataAsync(model);
                 return View(model);
             }
-
-            var scoringMode = model.ResolveScoringMode();
 
             var exam = new Exam
             {
@@ -98,120 +174,41 @@ namespace Cognify.Web.Controllers
                 EndTime = model.EndTime.ToUniversalTime(),
                 NegativeMarking = model.NegativeMarking,
                 ShuffleQuestions = model.ShuffleQuestions,
-                ScoringMode = scoringMode,
-                TotalMarks = 0
+                ScoringMode = ScoringMode.Standard,
+                QuestionSetId = questionSet!.QuestionSetId,
+                TotalMarks = questionSet.Questions.Sum(q => q.Marks)
             };
 
-            int totalMarks = 0;
-            if (model.EnableAdaptive)
-            {
-                var selectedConceptIds = new HashSet<int>();
-                if (model.ConceptPools != null)
-                {
-                    foreach (var pool in model.ConceptPools)
-                    {
-                        if (pool.EasyCount > 0 || pool.MediumCount > 0 || pool.HardCount > 0)
-                        {
-                            selectedConceptIds.Add(pool.ConceptTagId);
-                            exam.QuestionPools.Add(new ExamQuestionPool
-                            {
-                                ConceptTagId = pool.ConceptTagId,
-                                EasyCount = pool.EasyCount,
-                                MediumCount = pool.MediumCount,
-                                HardCount = pool.HardCount
-                            });
-                        }
-                    }
-                }
-
-                var questionsToLink = new List<Question>();
-                if (model.SelectedQuestionIds != null && model.SelectedQuestionIds.Any())
-                {
-                    questionsToLink = await _context.Questions
-                        .Where(q => model.SelectedQuestionIds.Contains(q.QuestionId))
-                        .ToListAsync();
-                }
-                else if (selectedConceptIds.Any())
-                {
-                    questionsToLink = await _context.Questions
-                        .Where(q => selectedConceptIds.Contains(q.ConceptTagId))
-                        .ToListAsync();
-                }
-                else
-                {
-                    questionsToLink = await _context.Questions.Take(10).ToListAsync();
-                }
-
-                int seq = 1;
-                foreach (var q in questionsToLink)
-                {
-                    exam.ExamQuestions.Add(new ExamQuestion
-                    {
-                        QuestionId = q.QuestionId,
-                        SequenceOrder = seq++
-                    });
-                    totalMarks += q.Marks;
-                }
-            }
-            else
-            {
-                var selectedIds = model.SelectedQuestionIds ?? new List<int>();
-                var questions = await _context.Questions
-                    .Where(q => selectedIds.Contains(q.QuestionId))
-                    .ToListAsync();
-
-                int seq = 1;
-                foreach (var q in questions)
-                {
-                    exam.ExamQuestions.Add(new ExamQuestion
-                    {
-                        QuestionId = q.QuestionId,
-                        SequenceOrder = seq++
-                    });
-                    totalMarks += q.Marks;
-                }
-            }
-
-            exam.TotalMarks = totalMarks > 0 ? totalMarks : 30;
+            exam.ExamQuestions = questionSet.Questions
+                .OrderBy(q => q.QuestionId)
+                .Select((q, index) => new ExamQuestion { QuestionId = q.QuestionId, SequenceOrder = index + 1 })
+                .ToList();
 
             await _context.Exams.AddAsync(exam);
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = $"Exam \"{exam.Title}\" was successfully created and scheduled!";
+            var shareUrl = Url.Action("Start", "ExamAttempt", new { token = _urlTokens.ProtectExam(exam.ExamId) }, Request.Scheme) ?? string.Empty;
+            TempData["SuccessMessage"] = $"Exam \"{exam.Title}\" was created. Share link: {shareUrl}";
             return RedirectToAction("Index", "Dashboard");
         }
 
         private async Task PopulateExamCreationDataAsync(ExamCreateVM model)
         {
-            var conceptTags = await _context.ConceptTags.ToListAsync();
-            var questions = await _context.Questions.Include(q => q.ConceptTag).ToListAsync();
-
-            model.ConceptPools = conceptTags.Select(ct => new ConceptPoolVM
-            {
-                ConceptTagId = ct.ConceptTagId,
-                ConceptName = ct.Name,
-                Subject = ct.Subject,
-                AvailableEasy = questions.Count(q => q.ConceptTagId == ct.ConceptTagId && q.DifficultyLevel == DifficultyLevel.Easy),
-                AvailableMedium = questions.Count(q => q.ConceptTagId == ct.ConceptTagId && q.DifficultyLevel == DifficultyLevel.Medium),
-                AvailableHard = questions.Count(q => q.ConceptTagId == ct.ConceptTagId && q.DifficultyLevel == DifficultyLevel.Hard),
-                EasyCount = 2,
-                MediumCount = 2,
-                HardCount = 1
-            }).ToList();
-
-            var selectedIds = model.SelectedQuestionIds?.ToHashSet() ?? new HashSet<int>();
-
-            model.AvailableQuestions = questions.Select(q => new QuestionSelectVM
-            {
-                QuestionId = q.QuestionId,
-                Text = q.Text,
-                Subject = q.Subject,
-                ConceptTagId = q.ConceptTagId,
-                ConceptName = q.ConceptTag?.Name ?? "General",
-                DifficultyLevel = q.DifficultyLevel,
-                Marks = q.Marks,
-                IsSelected = selectedIds.Contains(q.QuestionId)
-            }).ToList();
+            var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var currentUser = await _context.Users.FirstAsync(u => u.UserId == currentUserId);
+            model.QuestionSets = await _context.QuestionSets
+                .Where(s => currentUser.Role == UserRole.Admin || s.CreatedByUserId == currentUserId)
+                .Include(s => s.Questions)
+                .OrderBy(s => s.Title)
+                .Select(s => new QuestionSetOptionVM
+                {
+                    QuestionSetId = s.QuestionSetId,
+                    Title = s.Title,
+                    Subject = s.Subject,
+                    QuestionCount = s.Questions.Count,
+                    TotalMarks = s.Questions.Sum(q => q.Marks)
+                })
+                .ToListAsync();
         }
     }
 }

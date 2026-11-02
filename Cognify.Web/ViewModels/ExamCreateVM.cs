@@ -13,6 +13,10 @@ namespace Cognify.Web.ViewModels
 
         public string Subject { get; set; } = "Computer Science";
 
+        [Required(ErrorMessage = "Please select a question set")]
+        [Display(Name = "Question Set")]
+        public int QuestionSetId { get; set; }
+
         [Required(ErrorMessage = "Duration is required")]
         [Range(5, 360, ErrorMessage = "Duration must be between 5 and 360 minutes")]
         [Display(Name = "Duration (Minutes)")]
@@ -32,29 +36,16 @@ namespace Cognify.Web.ViewModels
         [Display(Name = "Shuffle Questions")]
         public bool ShuffleQuestions { get; set; } = true;
 
-        // Scoring Modes
-        [Display(Name = "Confidence-Weighted Scoring")]
-        public bool EnableConfidenceWeighted { get; set; }
+        public List<QuestionSetOptionVM> QuestionSets { get; set; } = new();
+    }
 
-        [Display(Name = "Adaptive Difficulty Engine")]
-        public bool EnableAdaptive { get; set; }
-
-        public ScoringMode ResolveScoringMode()
-        {
-            var mode = ScoringMode.Standard;
-            if (EnableConfidenceWeighted) mode |= ScoringMode.ConfidenceWeighted;
-            if (EnableAdaptive) mode |= ScoringMode.Adaptive;
-            return mode;
-        }
-
-        // Populated if EnableAdaptive is true
-        public List<ConceptPoolVM> ConceptPools { get; set; } = new();
-
-        // Selected question IDs for Fixed/Standard selection
-        public List<int> SelectedQuestionIds { get; set; } = new();
-
-        // Available question catalog for selection UI
-        public List<QuestionSelectVM> AvailableQuestions { get; set; } = new();
+    public class QuestionSetOptionVM
+    {
+        public int QuestionSetId { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Subject { get; set; } = string.Empty;
+        public int QuestionCount { get; set; }
+        public int TotalMarks { get; set; }
     }
 
     public class ConceptPoolVM

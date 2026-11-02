@@ -5,9 +5,12 @@ namespace Cognify.Web.ViewModels
     public class ExamAttemptVM
     {
         public int AttemptId { get; set; }
+        public string AttemptToken { get; set; } = string.Empty;
         public int ExamId { get; set; }
+        public string ExamToken { get; set; } = string.Empty;
         public string ExamTitle { get; set; } = string.Empty;
         public int QuestionId { get; set; }
+        public string QuestionToken { get; set; } = string.Empty;
         public string QuestionText { get; set; } = string.Empty;
         public string OptionA { get; set; } = string.Empty;
         public string OptionB { get; set; } = string.Empty;
@@ -20,8 +23,8 @@ namespace Cognify.Web.ViewModels
 
     public class AnswerSubmitVM
     {
-        public int AttemptId { get; set; }
-        public int QuestionId { get; set; }
+        public string AttemptToken { get; set; } = string.Empty;
+        public string QuestionToken { get; set; } = string.Empty;
         public string? SelectedOption { get; set; }
         public ConfidenceLevel? ConfidenceLevel { get; set; }
     }
@@ -29,6 +32,7 @@ namespace Cognify.Web.ViewModels
     public class ResultSummaryVM
     {
         public int AttemptId { get; set; }
+        public string AttemptToken { get; set; } = string.Empty;
         public string ExamTitle { get; set; } = string.Empty;
         public double TotalScore { get; set; }
         public double TotalMarks { get; set; }
