@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Cognify.Core.Enums;
 using Cognify.Data;
 using Cognify.Web.ViewModels;
+using Cognify.Web.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,14 +13,16 @@ namespace Cognify.Web.Controllers
     public class ResultController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly IUrlTokenProtector _urlTokens;
 
-        public ResultController(AppDbContext context)
+        public ResultController(AppDbContext context, IUrlTokenProtector urlTokens)
         {
             _context = context;
+            _urlTokens = urlTokens;
         }
 
         // GET: /Result/Details?examId=1 or /Result/Details?attemptId=5
-        public async Task<IActionResult> Details(int? examId, int? attemptId)
+        public async Task<IActionResult> Details(string? examToken, string? attemptToken)
         {
             var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!int.TryParse(userIdStr, out var userId))
@@ -33,13 +36,15 @@ namespace Cognify.Web.Controllers
                     .ThenInclude(cp => cp.ConceptTag)
                 .Where(a => a.UserId == userId);
 
-            if (attemptId.HasValue)
+            if (!string.IsNullOrWhiteSpace(attemptToken))
             {
-                query = query.Where(a => a.AttemptId == attemptId.Value);
+                if (!_urlTokens.TryUnprotectAttempt(attemptToken, out var attemptId)) return BadRequest("Invalid result link.");
+                query = query.Where(a => a.AttemptId == attemptId);
             }
-            else if (examId.HasValue)
+            else if (!string.IsNullOrWhiteSpace(examToken))
             {
-                query = query.Where(a => a.ExamId == examId.Value)
+                if (!_urlTokens.TryUnprotectExam(examToken, out var examId)) return BadRequest("Invalid result link.");
+                query = query.Where(a => a.ExamId == examId)
                              .OrderByDescending(a => a.SubmitTime ?? a.StartTime);
             }
             else
@@ -56,6 +61,7 @@ namespace Cognify.Web.Controllers
             var vm = new ResultSummaryVM
             {
                 AttemptId = attempt.AttemptId,
+                AttemptToken = _urlTokens.ProtectAttempt(attempt.AttemptId),
                 ExamTitle = attempt.Exam?.Title ?? "Exam Assessment",
                 TotalScore = attempt.TotalScore,
                 TotalMarks = attempt.Exam?.TotalMarks ?? 100,

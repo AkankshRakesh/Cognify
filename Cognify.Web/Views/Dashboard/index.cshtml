@@ -87,7 +87,7 @@
 
                         @if (q.IsOpenNow)
                         {
-                            <a class="px-btn" asp-controller="ExamAttempt" asp-action="Start" asp-route-id="@q.ExamId">Start</a>
+                            <a class="px-btn" asp-controller="ExamAttempt" asp-action="Start" asp-route-token="@q.ExamToken">Start</a>
                         }
                         else
                         {
@@ -119,7 +119,7 @@
                         </div>
                         <div class="result-score">
                             <strong>@r.Score/@r.TotalMarks</strong>
-                            <a asp-controller="Result" asp-action="Details" asp-route-examId="@r.ExamId">View report</a>
+                            <a asp-controller="Result" asp-action="Details" asp-route-attemptToken="@r.AttemptToken">View report</a>
                         </div>
                     </article>
                 }

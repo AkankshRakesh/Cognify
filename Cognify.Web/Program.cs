@@ -4,6 +4,7 @@ using Cognify.Data;
 using Cognify.Data.Repositories;
 using Cognify.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Cognify.Web.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +22,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddDataProtection();
+builder.Services.AddSingleton<IUrlTokenProtector, UrlTokenProtector>();
     
 // ---- Database (SQL Server via EF Core) ----
 builder.Services.AddDbContext<AppDbContext>(options =>

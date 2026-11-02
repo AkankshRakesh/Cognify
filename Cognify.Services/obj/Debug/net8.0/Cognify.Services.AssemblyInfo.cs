@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Cognify.Services")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0393952a95ca4e6a491e1efb25ece20b8d4b11db")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a1e3f2d9d22ac2fba730d07657587db50ef07d7b")]
 [assembly: System.Reflection.AssemblyProductAttribute("Cognify.Services")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Cognify.Services")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

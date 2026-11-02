@@ -4,6 +4,7 @@ using Cognify.Core.Enums;
 using Cognify.Data;
 using Cognify.Services;
 using Cognify.Web.ViewModels;
+using Cognify.Web.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,10 +15,12 @@ namespace Cognify.Web.Controllers
     public class DashboardController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly IUrlTokenProtector _urlTokens;
 
-        public DashboardController(AppDbContext context)
+        public DashboardController(AppDbContext context, IUrlTokenProtector urlTokens)
         {
             _context = context;
+            _urlTokens = urlTokens;
         }
 
         public async Task<IActionResult> Index()
@@ -58,6 +61,12 @@ namespace Cognify.Web.Controllers
                 .OrderByDescending(e => e.StartTime)
                 .ToListAsync();
 
+            var questionSets = await _context.QuestionSets
+                .Where(s => user.Role == UserRole.Admin || s.CreatedByUserId == user.UserId)
+                .Include(s => s.Questions)
+                .OrderByDescending(s => s.CreatedOn)
+                .ToListAsync();
+
             var examIds = teacherExams.Select(e => e.ExamId).ToList();
 
             // All student submissions for these exams
@@ -92,6 +101,7 @@ namespace Cognify.Web.Controllers
                 return new TeacherExamSummaryVM
                 {
                     ExamId = e.ExamId,
+                    ExamToken = _urlTokens.ProtectExam(e.ExamId),
                     Title = e.Title,
                     Subject = e.ExamQuestions.Select(eq => eq.Question?.Subject).FirstOrDefault(s => !string.IsNullOrEmpty(s))
                               ?? e.QuestionPools.Select(qp => qp.ConceptTag?.Subject).FirstOrDefault(s => !string.IsNullOrEmpty(s))
@@ -104,7 +114,8 @@ namespace Cognify.Web.Controllers
                     IsAdaptive = e.IsAdaptive,
                     IsConfidenceWeighted = e.IsConfidenceWeighted,
                     AttemptsCount = examAttempts.Count,
-                    AverageScore = examAvg
+                    AverageScore = examAvg,
+                    ShareUrl = Url.Action("Start", "ExamAttempt", new { token = _urlTokens.ProtectExam(e.ExamId) }, Request.Scheme) ?? string.Empty
                 };
             }).ToList();
 
@@ -112,7 +123,9 @@ namespace Cognify.Web.Controllers
             var recentSubmissions = attempts.Take(8).Select(a => new TeacherRecentSubmissionVM
             {
                 AttemptId = a.AttemptId,
+                AttemptToken = _urlTokens.ProtectAttempt(a.AttemptId),
                 ExamId = a.ExamId,
+                ExamToken = _urlTokens.ProtectExam(a.ExamId),
                 StudentName = a.User?.Name ?? "Student",
                 ExamTitle = a.Exam?.Title ?? "Exam",
                 Score = Math.Round(a.TotalScore, 1),
@@ -164,6 +177,16 @@ namespace Cognify.Web.Controllers
             {
                 FullName = user.Name,
                 Email = user.Email,
+                QuestionSets = questionSets.Select(s => new TeacherQuestionSetSummaryVM
+                {
+                    QuestionSetId = s.QuestionSetId,
+                    Title = s.Title,
+                    Description = s.Description,
+                    Subject = s.Subject,
+                    QuestionCount = s.Questions.Count,
+                    TotalMarks = s.Questions.Sum(q => q.Marks),
+                    CreatedOn = s.CreatedOn
+                }).ToList(),
                 TotalExamsCreated = totalExams,
                 ActiveExamsCount = activeExams,
                 TotalSubmissions = totalSubmissions,
@@ -260,6 +283,7 @@ namespace Cognify.Web.Controllers
             var upcomingExams = upcomingEntities.Select(e => new QuestVM
             {
                 ExamId = e.ExamId,
+                ExamToken = _urlTokens.ProtectExam(e.ExamId),
                 Title = e.Title,
                 Subject = e.ExamQuestions.Select(eq => eq.Question?.Subject).FirstOrDefault(s => !string.IsNullOrEmpty(s))
                           ?? e.QuestionPools.Select(qp => qp.ConceptTag?.Subject).FirstOrDefault(s => !string.IsNullOrEmpty(s))
@@ -275,7 +299,9 @@ namespace Cognify.Web.Controllers
             var recentResults = attempts.Take(5).Select(a => new ResultVM
             {
                 AttemptId = a.AttemptId,
+                AttemptToken = _urlTokens.ProtectAttempt(a.AttemptId),
                 ExamId = a.ExamId,
+                ExamToken = _urlTokens.ProtectExam(a.ExamId),
                 Title = a.Exam?.Title ?? "Exam",
                 SubmittedOn = a.SubmitTime ?? a.StartTime,
                 Score = (int)Math.Round(a.TotalScore),

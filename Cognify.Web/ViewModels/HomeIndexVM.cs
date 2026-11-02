@@ -22,6 +22,7 @@ namespace Cognify.Web.ViewModels
     public class UpcomingExamCardVM
     {
         public int ExamId { get; set; }
+        public string ExamToken { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
         public string Subject { get; set; } = string.Empty;
         public DateTime StartTime { get; set; }
@@ -33,6 +34,7 @@ namespace Cognify.Web.ViewModels
     public class RecentResultCardVM
     {
         public int ExamId { get; set; }
+        public string ExamToken { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
         public double Score { get; set; }
         public double TotalMarks { get; set; }

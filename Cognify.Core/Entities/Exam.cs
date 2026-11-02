@@ -15,6 +15,9 @@ namespace Cognify.Core.Entities
         public DateTime EndTime { get; set; }
         public int TotalMarks { get; set; }
 
+        public int? QuestionSetId { get; set; }
+        public QuestionSet? QuestionSet { get; set; }
+
         public bool NegativeMarking { get; set; }
         public bool ShuffleQuestions { get; set; } = true;
 

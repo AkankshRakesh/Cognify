@@ -6,6 +6,7 @@ using Cognify.Data;
 using Cognify.Data.Repositories;
 using Cognify.Services;
 using Cognify.Web.ViewModels;
+using Cognify.Web.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -20,24 +21,28 @@ namespace Cognify.Web.Controllers
         private readonly ExamRepository _examRepository;
         private readonly ScoringServiceFactory _scoringFactory;
         private readonly IConceptAnalyzer _conceptAnalyzer;
+        private readonly IUrlTokenProtector _urlTokens;
 
         public ExamAttemptController(
             AppDbContext context,
             AttemptRepository attemptRepository,
             ExamRepository examRepository,
             ScoringServiceFactory scoringFactory,
-            IConceptAnalyzer conceptAnalyzer)
+            IConceptAnalyzer conceptAnalyzer,
+            IUrlTokenProtector urlTokens)
         {
             _context = context;
             _attemptRepository = attemptRepository;
             _examRepository = examRepository;
             _scoringFactory = scoringFactory;
             _conceptAnalyzer = conceptAnalyzer;
+            _urlTokens = urlTokens;
         }
 
         // GET: /ExamAttempt/Start/5
-        public async Task<IActionResult> Start(int id)
+        public async Task<IActionResult> Start(string token)
         {
+            if (!_urlTokens.TryUnprotectExam(token, out var id)) return BadRequest("Invalid exam link.");
             var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!int.TryParse(userIdStr, out var userId))
                 return RedirectToAction("Login", "Account");
@@ -45,6 +50,24 @@ namespace Cognify.Web.Controllers
             var exam = await _examRepository.GetByIdAsync(id);
             if (exam == null)
                 return RedirectToAction("Index", "Dashboard");
+
+            if (User.FindFirstValue(ClaimTypes.Role) != UserRole.Student.ToString())
+            {
+                TempData["ErrorMessage"] = "Only student accounts can attempt an exam.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            var now = DateTime.UtcNow;
+            if (now < exam.StartTime)
+            {
+                TempData["ErrorMessage"] = "This exam is not open yet.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+            if (now >= exam.EndTime)
+            {
+                TempData["ErrorMessage"] = "This exam is no longer accepting attempts.";
+                return RedirectToAction("Index", "Dashboard");
+            }
 
             // Check if student already attempted or has in-progress attempt
             var existingAttempt = await _context.ExamAttempts
@@ -54,32 +77,41 @@ namespace Cognify.Web.Controllers
             {
                 if (existingAttempt.Status == AttemptStatus.Submitted || existingAttempt.Status == AttemptStatus.AutoSubmitted)
                 {
-                    return RedirectToAction("Details", "Result", new { attemptId = existingAttempt.AttemptId });
+                    return RedirectToAction("Details", "Result", new { attemptToken = _urlTokens.ProtectAttempt(existingAttempt.AttemptId) });
                 }
-                return RedirectToAction("Attempt", new { id = existingAttempt.AttemptId });
+                return RedirectToAction("Attempt", new { token = _urlTokens.ProtectAttempt(existingAttempt.AttemptId) });
             }
 
             var attempt = await _attemptRepository.StartAsync(id, userId);
-            return RedirectToAction("Attempt", new { id = attempt.AttemptId });
+            return RedirectToAction("Attempt", new { token = _urlTokens.ProtectAttempt(attempt.AttemptId) });
         }
 
         // GET: /ExamAttempt/Attempt/5
-        public async Task<IActionResult> Attempt(int id)
+        public async Task<IActionResult> Attempt(string token)
         {
+            if (!_urlTokens.TryUnprotectAttempt(token, out var attemptId)) return BadRequest("Invalid attempt link.");
             var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!int.TryParse(userIdStr, out var userId))
                 return RedirectToAction("Login", "Account");
 
-            var attempt = await _attemptRepository.GetByIdAsync(id);
+            var attempt = await _attemptRepository.GetByIdAsync(attemptId);
             if (attempt == null || attempt.UserId != userId)
                 return RedirectToAction("Index", "Dashboard");
 
             if (attempt.Status != AttemptStatus.InProgress)
-                return RedirectToAction("Details", "Result", new { attemptId = attempt.AttemptId });
+                return RedirectToAction("Details", "Result", new { attemptToken = _urlTokens.ProtectAttempt(attempt.AttemptId) });
 
             var exam = await _examRepository.GetByIdAsync(attempt.ExamId);
             if (exam == null)
                 return RedirectToAction("Index", "Dashboard");
+
+            var deadline = new[]
+            {
+                exam.EndTime,
+                attempt.StartTime.AddMinutes(exam.DurationMinutes)
+            }.Min();
+            if (DateTime.UtcNow >= deadline)
+                return await FinishAttemptAsync(attempt, exam);
 
             var selectionService = _scoringFactory.GetSelectionService(exam);
             Question? nextQuestion = null;
@@ -103,9 +135,12 @@ namespace Cognify.Web.Controllers
             var vm = new ExamAttemptVM
             {
                 AttemptId = attempt.AttemptId,
+                AttemptToken = _urlTokens.ProtectAttempt(attempt.AttemptId),
                 ExamId = exam.ExamId,
+                ExamToken = _urlTokens.ProtectExam(exam.ExamId),
                 ExamTitle = exam.Title,
                 QuestionId = nextQuestion.QuestionId,
+                QuestionToken = _urlTokens.ProtectQuestion(nextQuestion.QuestionId),
                 QuestionText = nextQuestion.Text,
                 OptionA = nextQuestion.OptionA,
                 OptionB = nextQuestion.OptionB,
@@ -113,7 +148,7 @@ namespace Cognify.Web.Controllers
                 OptionD = nextQuestion.OptionD,
                 ShowConfidenceSlider = exam.IsConfidenceWeighted,
                 CurrentQuestionNumber = attempt.Answers.Count + 1,
-                SecondsRemaining = exam.DurationMinutes * 60
+                SecondsRemaining = Math.Max(0, (int)Math.Floor((deadline - DateTime.UtcNow).TotalSeconds))
             };
 
             return View(vm);
@@ -128,14 +163,26 @@ namespace Cognify.Web.Controllers
             if (!int.TryParse(userIdStr, out var userId))
                 return RedirectToAction("Login", "Account");
 
-            var attempt = await _attemptRepository.GetByIdAsync(model.AttemptId);
+            if (!_urlTokens.TryUnprotectAttempt(model.AttemptToken, out var attemptId) ||
+                !_urlTokens.TryUnprotectQuestion(model.QuestionToken, out var questionId))
+                return BadRequest("Invalid answer link.");
+
+            var attempt = await _attemptRepository.GetByIdAsync(attemptId);
             if (attempt == null || attempt.UserId != userId || attempt.Status != AttemptStatus.InProgress)
                 return RedirectToAction("Index", "Dashboard");
 
             var exam = await _examRepository.GetByIdAsync(attempt.ExamId);
-            var question = await _context.Questions.FindAsync(model.QuestionId);
+            var question = await _context.Questions.FindAsync(questionId);
             if (exam == null || question == null)
                 return RedirectToAction("Index", "Dashboard");
+
+            var deadline = new[]
+            {
+                exam.EndTime,
+                attempt.StartTime.AddMinutes(exam.DurationMinutes)
+            }.Min();
+            if (DateTime.UtcNow >= deadline)
+                return await FinishAttemptAsync(attempt, exam);
 
             var isCorrect = !string.IsNullOrEmpty(model.SelectedOption) &&
                             string.Equals(model.SelectedOption.Trim(), question.CorrectOption.Trim(), StringComparison.OrdinalIgnoreCase);
@@ -161,7 +208,7 @@ namespace Cognify.Web.Controllers
             if (isCorrect) question.TimesCorrect++;
             await _context.SaveChangesAsync();
 
-            return RedirectToAction("Attempt", new { id = attempt.AttemptId });
+            return RedirectToAction("Attempt", new { token = _urlTokens.ProtectAttempt(attempt.AttemptId) });
         }
 
         private async Task<IActionResult> FinishAttemptAsync(ExamAttempt attempt, Exam exam)
@@ -189,7 +236,7 @@ namespace Cognify.Web.Controllers
 
             await _context.SaveChangesAsync();
 
-            return RedirectToAction("Details", "Result", new { attemptId = attempt.AttemptId });
+            return RedirectToAction("Details", "Result", new { attemptToken = _urlTokens.ProtectAttempt(attempt.AttemptId) });
         }
 
         private void contextConceptAdd(int attemptId, ConceptPerformance cp)

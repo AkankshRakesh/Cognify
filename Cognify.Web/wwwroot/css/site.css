@@ -13,7 +13,7 @@
   --coral: #E2694B;
   --green: #4C9A6A;
   --text-ink: #10152B;
-  --text-muted: #5B5F73;
+  --text-muted: #A8ACC2;
   --text-onink: #F6F4EF;
   --text-onink-muted: #A8ACC2;
   --radius-lg: 22px;
@@ -22,6 +22,19 @@
   --font-display: "Sora", "Segoe UI", sans-serif;
   --font-body: "Inter", "Segoe UI", sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+  --button-height: 27; /* in px */
+  --height-to-scale: 33; /* in px */
+  --scale-ratio: calc(var(--height-to-scale) / var(--button-height));
+
+  /* Slide setup */
+  --button-height-px: 27px;
+  --button-vertical-padding-px: 6px;
+  --button-content-spacing-px: calc(
+    var(--button-height-px) + var(--button-vertical-padding-px) * 2
+  );
+  --slide-step-1: calc(var(--button-height-px) * -1);
+  --slide-step-2: calc(var(--button-height-px) * -2);
 }
 
 * {
@@ -63,6 +76,10 @@ a {
 :focus-visible {
   outline: 2.5px solid var(--amber);
   outline-offset: 3px;
+}
+
+.text-muted {
+  color: var(--text-muted) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

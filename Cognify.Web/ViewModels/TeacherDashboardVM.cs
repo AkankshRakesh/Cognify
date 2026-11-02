@@ -7,6 +7,8 @@ namespace Cognify.Web.ViewModels
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
 
+        public List<TeacherQuestionSetSummaryVM> QuestionSets { get; set; } = new();
+
         // Key Analytical Stat Tiles
         public int TotalExamsCreated { get; set; }
         public int ActiveExamsCount { get; set; }
@@ -27,9 +29,21 @@ namespace Cognify.Web.ViewModels
         public List<ConceptQuestionCountVM> QuestionBankSummary { get; set; } = new();
     }
 
+    public class TeacherQuestionSetSummaryVM
+    {
+        public int QuestionSetId { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string Subject { get; set; } = string.Empty;
+        public int QuestionCount { get; set; }
+        public int TotalMarks { get; set; }
+        public DateTime CreatedOn { get; set; }
+    }
+
     public class TeacherExamSummaryVM
     {
         public int ExamId { get; set; }
+        public string ExamToken { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
         public string Subject { get; set; } = string.Empty;
         public int DurationMinutes { get; set; }
@@ -44,6 +58,7 @@ namespace Cognify.Web.ViewModels
         public bool IsEnded => EndTime < DateTime.UtcNow;
         public int AttemptsCount { get; set; }
         public double AverageScore { get; set; }
+        public string ShareUrl { get; set; } = string.Empty;
     }
 
     public class TeacherConceptAnalyticsVM
@@ -59,7 +74,9 @@ namespace Cognify.Web.ViewModels
     public class TeacherRecentSubmissionVM
     {
         public int AttemptId { get; set; }
+        public string AttemptToken { get; set; } = string.Empty;
         public int ExamId { get; set; }
+        public string ExamToken { get; set; } = string.Empty;
         public string StudentName { get; set; } = string.Empty;
         public string ExamTitle { get; set; } = string.Empty;
         public double Score { get; set; }

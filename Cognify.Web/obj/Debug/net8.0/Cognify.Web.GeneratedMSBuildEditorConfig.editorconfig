@@ -59,6 +59,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRXhhbVxJbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/Akanksh Rakesh/Desktop/Cognify/Cognify.Web/Views/Exam/Submissions.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRXhhbVxTdWJtaXNzaW9ucy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/Akanksh Rakesh/Desktop/Cognify/Cognify.Web/Views/Home/Error.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxFcnJvci5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
@@ -69,6 +73,14 @@ build_metadata.AdditionalFiles.CssScope =
 
 [C:/Users/Akanksh Rakesh/Desktop/Cognify/Cognify.Web/Views/Home/Privacy.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxQcml2YWN5LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Akanksh Rakesh/Desktop/Cognify/Cognify.Web/Views/QuestionBank/CreateSet.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUXVlc3Rpb25CYW5rXENyZWF0ZVNldC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Akanksh Rakesh/Desktop/Cognify/Cognify.Web/Views/QuestionBank/EditSet.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUXVlc3Rpb25CYW5rXEVkaXRTZXQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/Akanksh Rakesh/Desktop/Cognify/Cognify.Web/Views/QuestionBank/Index.cshtml]
