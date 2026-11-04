@@ -1,49 +1,217 @@
+
 @model Cognify.Web.ViewModels.TeacherDashboardVM
 @inject Cognify.Web.Security.IUrlTokenProtector UrlTokens
-@{ ViewData["Title"] = "Teacher Dashboard"; var firstName = (Model.FullName ?? "Teacher").Split(' ')[0]; }
-@section Styles { <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" /> }
-<div class="dash"><div class="container dash-wrap">
-    @if (TempData["SuccessMessage"] != null) { <div class="alert alert-success bg-dark text-success border-success">@TempData["SuccessMessage"]</div> }
-    <section class="px px-hero"><div class="avatar">@firstName[0].ToString().ToUpper()</div><div class="hero-main"><p class="hero-hello">Teacher workspace</p><h1 class="hero-level">Welcome, @Model.FullName</h1><p class="muted mb-0">Create reusable question sets, then use them to publish exams.</p></div><a asp-controller="Exam" asp-action="Create" class="px-btn">+ Create exam</a></section>
-    <div class="d-flex justify-content-between align-items-end mb-3"><div><h2 class="px-title mb-1">Question sets</h2><p class="muted mb-0">Each set contains the full collection of questions and difficulty levels for an exam.</p></div><a asp-controller="QuestionBank" asp-action="CreateSet" class="px-btn">+ New question set</a></div>
-    @if (!Model.QuestionSets.Any()) { <div class="px px-empty mb-4"><p>No question sets yet.</p><small>Create your first set to start building exams.</small></div> }
-    <div class="row g-3 mb-5">@foreach (var set in Model.QuestionSets) { <div class="col-md-6 col-xl-4"><article class="px set-card h-100"><span class="tag tag-subject">@set.Subject</span><h3>@set.Title</h3><p class="quest-meta">@set.QuestionCount questions · @set.TotalMarks marks</p>@if(!string.IsNullOrWhiteSpace(set.Description)){<p class="muted small">@set.Description</p>}<small class="text-muted">Created @set.CreatedOn.ToLocalTime().ToString("dd MMM yyyy")</small></article></div>}</div>
-    <div class="d-flex justify-content-between align-items-end mb-3"><div><h2 class="px-title mb-1">Exams</h2><p class="muted mb-0">Exams use one question set selected during creation.</p></div><a asp-controller="Exam" asp-action="Create" class="text-warning small fw-semibold">+ New exam</a></div>
-    @if (!Model.Exams.Any()) { <div class="px px-empty"><p>No exams created yet.</p><small>Choose a question set to publish your first exam.</small></div> }
-    @foreach (var exam in Model.Exams) { <article class="px quest"><div class="quest-body"><div class="d-flex align-items-center gap-2"><h3>@exam.Title</h3>@if(exam.IsActive){<span class="t-badge t-live">Live</span>}else if(exam.IsUpcoming){<span class="t-badge t-upcoming">Upcoming</span>}else{<span class="t-badge t-ended">Ended</span>}</div><p class="quest-meta">@exam.QuestionCount questions · @exam.DurationMinutes minutes · @exam.TotalMarks marks · @exam.AttemptsCount submissions</p><div class="exam-actions mt-3"><a asp-controller="Exam" asp-action="Submissions" asp-route-token="@exam.ExamToken" class="btn btn-outline-light btn-sm">View submissions</a>
-    
 
-        <button class="button" type="button" id="button" title="Copy link" data-url="@exam.ShareUrl">
-        <div class="content">
-            <div class="copy">
+@{
+    ViewData["Title"] = "Teacher Dashboard";
+    var firstName = (Model.FullName ?? "Teacher").Split(' ')[0];
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+}
+
+<div class="dash">
+    <div class="container dash-wrap">
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success bg-dark text-success border-success">
+                @TempData["SuccessMessage"]
+            </div>
+        }
+
+        <section class="px px-hero">
+
+            <div class="hero-main">
+                <p class="hero-hello">Teacher workspace</p>
+                <h1 class="hero-level">Welcome, @Model.FullName</h1>
+                <p class="muted mb-0">
+                    Create reusable question sets, then use them to publish exams.
+                </p>
+            </div>
+
+            <a asp-controller="Exam" asp-action="Create" class="px-btn">
+                + Create exam
+            </a>
+        </section>
+
+        <div class="d-flex justify-content-between align-items-end mb-3">
             <div>
-                Copy Link
+                <h2 class="px-title mb-1">Question sets</h2>
+                <p class="muted mb-0">
+                    Each set contains the full collection of questions and difficulty levels for an exam.
+                </p>
             </div>
-            </div>
-            <div class="copied">Copied</div>
+
+            <a asp-controller="QuestionBank" asp-action="CreateSet" class="px-btn">
+                + New question set
+            </a>
         </div>
-        </button>
 
+        @if (!Model.QuestionSets.Any())
+        {
+            <div class="px px-empty mb-4">
+                <p>No question sets yet.</p>
+                <small>Create your first set to start building exams.</small>
+            </div>
+        }
 
-    </div></div><span class="small text-muted">@exam.StartTime.ToLocalTime().ToString("dd MMM yyyy")</span></article> }
-</div></div>
-@section Scripts { <script>document.addEventListener('click', async function (event) { const button = event.target.closest('.copy-url-button'); if (!button) return; const original = button.textContent; try { await navigator.clipboard.writeText(button.dataset.url); button.textContent = 'Copied'; } catch { button.textContent = 'Copy failed'; } setTimeout(() => button.textContent = original, 1400); });
+        <div class="row g-3 mb-5">
+            @foreach (var set in Model.QuestionSets)
+            {
+                <div class="col-md-6 col-xl-4">
+                    <a asp-action="EditSet"
+                       asp-route-token="@UrlTokens.ProtectQuestionSet(set.QuestionSetId)"
+                       class="question-bank-card px d-block h-100">
 
-const ANIMATE_TIMEOUT = 3000 + 200;
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <span class="tag tag-subject">@set.Subject</span>
+                            <span class="bank-arrow">&rarr;</span>
+                        </div>
 
-const button = document.getElementById("button");
+                        <h2>@set.Title</h2>
 
-button.addEventListener("click", event => {
-  if (!button.classList.contains("animate")) {
-    button.classList.add("animate");
-    setTimeout(() => {
-      button.classList.remove("animate");
-    }, ANIMATE_TIMEOUT);
-  }
-});
+                        @if (!string.IsNullOrWhiteSpace(set.Description))
+                        {
+                            <p class="muted small">@set.Description</p>
+                        }
 
-</script> 
+                        <div class="bank-meta">
+                            <span>
+                                <strong>@set.QuestionCount</strong> questions
+                            </span>
 
+                            <span>
+                                <strong>@set.TotalMarks</strong> marks
+                            </span>
+                        </div>
 
+                        <small class="text-muted">
+                            Created @set.CreatedOn.ToLocalTime().ToString("dd MMM yyyy")
+                        </small>
+                    </a>
+                </div>
+            }
+        </div>
 
+        <div class="d-flex justify-content-between align-items-end mb-3">
+            <div>
+                <h2 class="px-title mb-1">Exams</h2>
+                <p class="muted mb-0">
+                    Exams use one question set selected during creation.
+                </p>
+            </div>
+
+            <a asp-controller="Exam" asp-action="Create" class="text-warning small fw-semibold">
+                + New exam
+            </a>
+        </div>
+
+        @if (!Model.Exams.Any())
+        {
+            <div class="px px-empty">
+                <p>No exams created yet.</p>
+                <small>Choose a question set to publish your first exam.</small>
+            </div>
+        }
+
+        @foreach (var exam in Model.Exams)
+        {
+            <article class="px quest">
+                <div class="quest-body">
+                    <div class="d-flex align-items-center gap-2">
+                        <h3>@exam.Title</h3>
+
+                        @if (exam.IsActive)
+                        {
+                            <span class="t-badge t-live">Live</span>
+                        }
+                        else if (exam.IsUpcoming)
+                        {
+                            <span class="t-badge t-upcoming">Upcoming</span>
+                        }
+                        else
+                        {
+                            <span class="t-badge t-ended">Ended</span>
+                        }
+                    </div>
+
+                    <p class="quest-meta">
+                        @exam.QuestionCount questions ·
+                        @exam.DurationMinutes minutes ·
+                        @exam.TotalMarks marks ·
+                        @exam.AttemptsCount submissions
+                    </p>
+
+                    <div class="exam-actions mt-3">
+                        <a asp-controller="Exam"
+                           asp-action="Submissions"
+                           asp-route-token="@exam.ExamToken"
+                           class="btn btn-outline-light btn-sm">
+                            View submissions
+                        </a>
+
+                        <button class="button"
+                                type="button"
+                                id="button"
+                                title="Copy link"
+                                data-url="@exam.ShareUrl">
+                            <div class="content">
+                                <div class="copy">
+                                    <div>
+                                        Copy Link
+                                    </div>
+                                </div>
+
+                                <div class="copied">
+                                    Copied
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <span class="small text-muted">
+                    @exam.StartTime.ToLocalTime().ToString("dd MMM yyyy")
+                </span>
+            </article>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('click', async function (event) {
+            const button = event.target.closest('.copy-url-button');
+
+            if (!button) return;
+
+            const original = button.textContent;
+
+            try {
+                await navigator.clipboard.writeText(button.dataset.url);
+                button.textContent = 'Copied';
+            }
+            catch {
+                button.textContent = 'Copy failed';
+            }
+
+            setTimeout(() => button.textContent = original, 1400);
+        });
+
+        const ANIMATE_TIMEOUT = 3000 + 200;
+
+        const button = document.getElementById("button");
+
+        button.addEventListener("click", event => {
+            if (!button.classList.contains("animate")) {
+                button.classList.add("animate");
+
+                setTimeout(() => {
+                    button.classList.remove("animate");
+                }, ANIMATE_TIMEOUT);
+            }
+        });
+    </script>
 }

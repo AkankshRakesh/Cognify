@@ -1,33 +1,427 @@
+
 @model Cognify.Web.ViewModels.QuestionSetCreateVM
 @using Cognify.Core.Enums
+
 @{
     ViewData["Title"] = "Create Question Set";
+
     var concepts = ViewBag.Concepts as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
 }
 
-@section Styles { <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" /> }
+@section Styles {
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+}
 
-<div class="dash"><div class="container question-set-page">
-    <div class="editor-header">
-        <div><a asp-controller="Dashboard" asp-action="Index" class="text-muted small">&larr; Back to dashboard</a><p class="hero-hello mt-3 mb-1">Question library</p><h1 class="text-white mb-2">Create a question set</h1><p class="muted mb-0">Create one reusable collection of questions. Select this set later when publishing an exam.</p></div>
-        <a asp-controller="QuestionBank" asp-action="Index" class="btn btn-outline-light btn-sm">View question bank</a>
+<div class="dash">
+    <div class="container question-set-page">
+
+        <div class="editor-header">
+            <div>
+                <a asp-controller="Dashboard"
+                   asp-action="Index"
+                   class="text-muted small">
+                    &larr; Back to dashboard
+                </a>
+
+                <p class="hero-hello mt-3 mb-1">Question library</p>
+
+                <h1 class="text-white mb-2">Create a question set</h1>
+
+                <p class="muted mb-0">
+                    Create one reusable collection of questions. Select this set later when publishing an exam.
+                </p>
+            </div>
+
+            <a asp-controller="QuestionBank"
+               asp-action="Index"
+               class="btn btn-outline-light btn-sm">
+                View question bank
+            </a>
+        </div>
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger bg-dark border-danger text-danger">
+                @TempData["ErrorMessage"]
+            </div>
+        }
+
+        <form asp-controller="QuestionBank"
+              asp-action="CreateSet"
+              method="post"
+              id="questionSetPageForm">
+
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="ModelOnly"
+                 class="alert alert-danger bg-dark border-danger"
+                 role="alert">
+            </div>
+
+            <section class="editor-section px mb-4">
+
+                <div class="editor-section-heading">
+                    <span class="editor-step">01</span>
+
+                    <div>
+                        <h2>Set details</h2>
+                        <p>
+                            Name this collection so it is easy to find during exam creation.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+
+                    <div class="col-md-7">
+                        <label asp-for="Title" class="form-label">
+                            Set name *
+                        </label>
+
+                        <input asp-for="Title"
+                               class="form-control-dark"
+                               placeholder="e.g. Data Structures Midterm" />
+
+                        <span asp-validation-for="Title"
+                              class="text-danger small">
+                        </span>
+                    </div>
+
+                    <div class="col-md-5">
+                        <label asp-for="Subject" class="form-label">
+                            Subject *
+                        </label>
+
+                        <input asp-for="Subject"
+                               class="form-control-dark"
+                               placeholder="e.g. Computer Science" />
+                    </div>
+
+                    <div class="col-12">
+                        <label asp-for="Description" class="form-label">
+                            Description
+                            <span class="text-muted">(optional)</span>
+                        </label>
+
+                        <textarea asp-for="Description"
+                                  class="form-control-dark"
+                                  rows="2"
+                                  placeholder="Briefly describe the topics or intended use of this set">
+                        </textarea>
+                    </div>
+
+                    <div class="col-md-7">
+                        <label asp-for="ConceptTagId" class="form-label">
+                            Concept area
+                        </label>
+
+                        <select asp-for="ConceptTagId" class="form-select-dark">
+                            <option value="">Select an existing concept</option>
+
+                            @foreach (var c in concepts)
+                            {
+                                <option value="@c.ConceptTagId">
+                                    @c.Name · @c.Subject
+                                </option>
+                            }
+                        </select>
+
+                        <input asp-for="NewConceptName"
+                               class="form-control-dark mt-2"
+                               placeholder="Or add a new concept name" />
+                    </div>
+
+                </div>
+            </section>
+
+            <section class="editor-section px mb-4">
+
+                <div class="editor-section-heading">
+                    <span class="editor-step">02</span>
+
+                    <div>
+                        <h2>Questions in this set</h2>
+                        <p>
+                            Every question is saved inside this set with its own answer, marks, and difficulty.
+                        </p>
+                    </div>
+
+                    <span class="editor-count" id="questionCount">
+                        1 question
+                    </span>
+                </div>
+
+                <div id="questionItems">
+
+                    <div class="question-editor-card" data-index="0">
+
+                        <div class="question-card-heading">
+                            <span class="question-number">
+                                Question 1
+                            </span>
+
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-danger remove-question d-none">
+                                Remove
+                            </button>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">
+                                Question text *
+                            </label>
+
+                            <textarea name="Questions[0].Text"
+                                      class="form-control-dark"
+                                      rows="3"
+                                      required
+                                      placeholder="Write the question prompt"></textarea>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+
+                            <div class="col-md-6">
+                                <input name="Questions[0].OptionA"
+                                       class="form-control-dark"
+                                       required
+                                       placeholder="Option A">
+                            </div>
+
+                            <div class="col-md-6">
+                                <input name="Questions[0].OptionB"
+                                       class="form-control-dark"
+                                       required
+                                       placeholder="Option B">
+                            </div>
+
+                            <div class="col-md-6">
+                                <input name="Questions[0].OptionC"
+                                       class="form-control-dark"
+                                       required
+                                       placeholder="Option C">
+                            </div>
+
+                            <div class="col-md-6">
+                                <input name="Questions[0].OptionD"
+                                       class="form-control-dark"
+                                       required
+                                       placeholder="Option D">
+                            </div>
+
+                        </div>
+
+                        <div class="row g-2">
+
+                            <div class="col-md-4">
+                                <label class="form-label small">
+                                    Correct answer
+                                </label>
+
+                                <select name="Questions[0].CorrectOption"
+                                        class="form-select-dark">
+                                    <option value="A">Option A</option>
+                                    <option value="B">Option B</option>
+                                    <option value="C">Option C</option>
+                                    <option value="D">Option D</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label small">
+                                    Difficulty
+                                </label>
+
+                                <select name="Questions[0].DifficultyLevel"
+                                        class="form-select-dark">
+                                    <option value="Easy">Easy</option>
+                                    <option value="Medium" selected>Medium</option>
+                                    <option value="Hard">Hard</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label small">
+                                    Marks
+                                </label>
+
+                                <input name="Questions[0].Marks"
+                                       type="number"
+                                       class="form-control-dark"
+                                       value="1"
+                                       min="1"
+                                       max="50">
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+
+                <button type="button"
+                        class="btn btn-outline-warning add-question-btn"
+                        id="addQuestion">
+                    + Add another question
+                </button>
+
+            </section>
+
+            <div class="editor-actions">
+                <a asp-controller="Dashboard"
+                   asp-action="Index"
+                   class="btn btn-outline-secondary">
+                    Cancel
+                </a>
+
+                <button type="submit" class="px-btn">
+                    Save question set &rarr;
+                </button>
+            </div>
+
+        </form>
     </div>
+</div>
 
-    @if (TempData["ErrorMessage"] != null) { <div class="alert alert-danger bg-dark border-danger text-danger">@TempData["ErrorMessage"]</div> }
-    <form asp-controller="QuestionBank" asp-action="CreateSet" method="post" id="questionSetPageForm">
-        @Html.AntiForgeryToken()
-        <div asp-validation-summary="ModelOnly" class="alert alert-danger bg-dark border-danger" role="alert"></div>
-        <section class="editor-section px mb-4"><div class="editor-section-heading"><span class="editor-step">01</span><div><h2>Set details</h2><p>Name this collection so it is easy to find during exam creation.</p></div></div><div class="row g-3"><div class="col-md-7"><label asp-for="Title" class="form-label">Set name *</label><input asp-for="Title" class="form-control-dark" placeholder="e.g. Data Structures Midterm" /><span asp-validation-for="Title" class="text-danger small"></span></div><div class="col-md-5"><label asp-for="Subject" class="form-label">Subject *</label><input asp-for="Subject" class="form-control-dark" placeholder="e.g. Computer Science" /></div><div class="col-12"><label asp-for="Description" class="form-label">Description <span class="text-muted">(optional)</span></label><textarea asp-for="Description" class="form-control-dark" rows="2" placeholder="Briefly describe the topics or intended use of this set"></textarea></div><div class="col-md-7"><label asp-for="ConceptTagId" class="form-label">Concept area</label><select asp-for="ConceptTagId" class="form-select-dark"><option value="">Select an existing concept</option>@foreach(var c in concepts){<option value="@c.ConceptTagId">@c.Name · @c.Subject</option>}</select><input asp-for="NewConceptName" class="form-control-dark mt-2" placeholder="Or add a new concept name" /></div></div></section>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
 
-        <section class="editor-section px mb-4"><div class="editor-section-heading"><span class="editor-step">02</span><div><h2>Questions in this set</h2><p>Every question is saved inside this set with its own answer, marks, and difficulty.</p></div><span class="editor-count" id="questionCount">1 question</span></div><div id="questionItems"><div class="question-editor-card" data-index="0"><div class="question-card-heading"><span class="question-number">Question 1</span><button type="button" class="btn btn-sm btn-outline-danger remove-question d-none">Remove</button></div><div class="mb-3"><label class="form-label">Question text *</label><textarea name="Questions[0].Text" class="form-control-dark" rows="3" required placeholder="Write the question prompt"></textarea></div><div class="row g-2 mb-3"><div class="col-md-6"><input name="Questions[0].OptionA" class="form-control-dark" required placeholder="Option A"></div><div class="col-md-6"><input name="Questions[0].OptionB" class="form-control-dark" required placeholder="Option B"></div><div class="col-md-6"><input name="Questions[0].OptionC" class="form-control-dark" required placeholder="Option C"></div><div class="col-md-6"><input name="Questions[0].OptionD" class="form-control-dark" required placeholder="Option D"></div></div><div class="row g-2"><div class="col-md-4"><label class="form-label small">Correct answer</label><select name="Questions[0].CorrectOption" class="form-select-dark"><option value="A">Option A</option><option value="B">Option B</option><option value="C">Option C</option><option value="D">Option D</option></select></div><div class="col-md-4"><label class="form-label small">Difficulty</label><select name="Questions[0].DifficultyLevel" class="form-select-dark"><option value="Easy">Easy</option><option value="Medium" selected>Medium</option><option value="Hard">Hard</option></select></div><div class="col-md-4"><label class="form-label small">Marks</label><input name="Questions[0].Marks" type="number" class="form-control-dark" value="1" min="1" max="50"></div></div></div></div><button type="button" class="btn btn-outline-warning add-question-btn" id="addQuestion">+ Add another question</button></section>
+    <script>
+        (() => {
+            const list = document.getElementById('questionItems');
+            const count = document.getElementById('questionCount');
 
-        <div class="editor-actions"><a asp-controller="Dashboard" asp-action="Index" class="btn btn-outline-secondary">Cancel</a><button type="submit" class="px-btn">Save question set &rarr;</button></div>
-    </form>
-</div></div>
+            let index = 1;
 
-@section Scripts { <partial name="_ValidationScriptsPartial" /><script>
-(() => { const list=document.getElementById('questionItems'), count=document.getElementById('questionCount'); let index=1;
-const template=i=>`<div class="question-editor-card" data-index="${i}"><div class="question-card-heading"><span class="question-number">Question ${i+1}</span><button type="button" class="btn btn-sm btn-outline-danger remove-question">Remove</button></div><div class="mb-3"><label class="form-label">Question text *</label><textarea name="Questions[${i}].Text" class="form-control-dark" rows="3" required placeholder="Write the question prompt"></textarea></div><div class="row g-2 mb-3"><div class="col-md-6"><input name="Questions[${i}].OptionA" class="form-control-dark" required placeholder="Option A"></div><div class="col-md-6"><input name="Questions[${i}].OptionB" class="form-control-dark" required placeholder="Option B"></div><div class="col-md-6"><input name="Questions[${i}].OptionC" class="form-control-dark" required placeholder="Option C"></div><div class="col-md-6"><input name="Questions[${i}].OptionD" class="form-control-dark" required placeholder="Option D"></div></div><div class="row g-2"><div class="col-md-4"><label class="form-label small">Correct answer</label><select name="Questions[${i}].CorrectOption" class="form-select-dark"><option value="A">Option A</option><option value="B">Option B</option><option value="C">Option C</option><option value="D">Option D</option></select></div><div class="col-md-4"><label class="form-label small">Difficulty</label><select name="Questions[${i}].DifficultyLevel" class="form-select-dark"><option value="Easy">Easy</option><option value="Medium" selected>Medium</option><option value="Hard">Hard</option></select></div><div class="col-md-4"><label class="form-label small">Marks</label><input name="Questions[${i}].Marks" type="number" class="form-control-dark" value="1" min="1" max="50"></div></div></div>`;
-function update(){const items=list.querySelectorAll('.question-editor-card'); count.textContent=`${items.length} question${items.length===1?'':'s'}`; items.forEach((x,i)=>{x.querySelector('.question-number').textContent=`Question ${i+1}`;x.querySelector('.remove-question').classList.toggle('d-none',items.length===1);});}
-document.getElementById('addQuestion').addEventListener('click',()=>{list.insertAdjacentHTML('beforeend',template(index++));update();}); list.addEventListener('click',e=>{if(e.target.classList.contains('remove-question')&&list.children.length>1){e.target.closest('.question-editor-card').remove();update();}});
-})();</script> }
+            const template = i => `
+                <div class="question-editor-card" data-index="${i}">
+
+                    <div class="question-card-heading">
+                        <span class="question-number">
+                            Question ${i + 1}
+                        </span>
+
+                        <button type="button"
+                                class="btn btn-sm btn-outline-danger remove-question">
+                            Remove
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Question text *</label>
+
+                        <textarea name="Questions[${i}].Text"
+                                  class="form-control-dark"
+                                  rows="3"
+                                  required
+                                  placeholder="Write the question prompt"></textarea>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+
+                        <div class="col-md-6">
+                            <input name="Questions[${i}].OptionA"
+                                   class="form-control-dark"
+                                   required
+                                   placeholder="Option A">
+                        </div>
+
+                        <div class="col-md-6">
+                            <input name="Questions[${i}].OptionB"
+                                   class="form-control-dark"
+                                   required
+                                   placeholder="Option B">
+                        </div>
+
+                        <div class="col-md-6">
+                            <input name="Questions[${i}].OptionC"
+                                   class="form-control-dark"
+                                   required
+                                   placeholder="Option C">
+                        </div>
+
+                        <div class="col-md-6">
+                            <input name="Questions[${i}].OptionD"
+                                   class="form-control-dark"
+                                   required
+                                   placeholder="Option D">
+                        </div>
+
+                    </div>
+
+                    <div class="row g-2">
+
+                        <div class="col-md-4">
+                            <label class="form-label small">
+                                Correct answer
+                            </label>
+
+                            <select name="Questions[${i}].CorrectOption"
+                                    class="form-select-dark">
+                                <option value="A">Option A</option>
+                                <option value="B">Option B</option>
+                                <option value="C">Option C</option>
+                                <option value="D">Option D</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small">
+                                Difficulty
+                            </label>
+
+                            <select name="Questions[${i}].DifficultyLevel"
+                                    class="form-select-dark">
+                                <option value="Easy">Easy</option>
+                                <option value="Medium" selected>Medium</option>
+                                <option value="Hard">Hard</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small">Marks</label>
+
+                            <input name="Questions[${i}].Marks"
+                                   type="number"
+                                   class="form-control-dark"
+                                   value="1"
+                                   min="1"
+                                   max="50">
+                        </div>
+
+                    </div>
+                </div>
+            `;
+
+            function update() {
+                const items = list.querySelectorAll('.question-editor-card');
+
+                count.textContent =
+                    `${items.length} question${items.length === 1 ? '' : 's'}`;
+
+                items.forEach((item, i) => {
+                    item.querySelector('.question-number').textContent =
+                        `Question ${i + 1}`;
+
+                    item.querySelector('.remove-question').classList.toggle(
+                        'd-none',
+                        items.length === 1
+                    );
+                });
+            }
+
+            document.getElementById('addQuestion').addEventListener('click', () => {
+                list.insertAdjacentHTML('beforeend', template(index++));
+                update();
+            });
+
+            list.addEventListener('click', event => {
+                if (
+                    event.target.classList.contains('remove-question') &&
+                    list.children.length > 1
+                ) {
+                    event.target.closest('.question-editor-card').remove();
+                    update();
+                }
+            });
+        })();
+    </script>
+}
