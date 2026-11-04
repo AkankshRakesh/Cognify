@@ -257,11 +257,17 @@
 .px-hero {
     --c: var(--d-amber);
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: 1fr auto;
     gap: 1.5rem;
     align-items: center;
     margin-bottom: 1.5rem;
     padding: 1.5rem;
+}
+
+.px-hero .px-btn {
+    width: fit-content;
+    justify-self: end;
+    white-space: nowrap;
 }
 .avatar {
     width: 84px; height: 84px;
