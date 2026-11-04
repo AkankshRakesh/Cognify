@@ -1,18 +1,169 @@
 @model Cognify.Web.ViewModels.ExamCreateVM
-@{ ViewData["Title"] = "Create Exam"; }
-@section Styles { <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" /> }
-<div class="dash"><div class="container exam-create-wrap">
-    <a asp-controller="Dashboard" asp-action="Index" class="text-muted small">&larr; Back to dashboard</a>
-    <div class="mb-4 mt-2"><h1 class="h3 text-white">Create exam</h1><p class="muted">Choose one question set, add the exam schedule, and publish.</p></div>
-    <form asp-action="Create" method="post"><div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>@Html.AntiForgeryToken()
-        <div class="px mb-4"><h2 class="px-title">Exam details</h2><div class="row g-3">
-            <div class="col-md-8"><label asp-for="Title" class="form-label text-light">Exam title *</label><input asp-for="Title" class="form-control-dark" placeholder="e.g. Data Structures Midterm" /><span asp-validation-for="Title" class="text-danger small"></span></div>
-            <div class="col-md-4"><label asp-for="QuestionSetId" class="form-label text-light">Question set *</label><select asp-for="QuestionSetId" class="form-select-dark"><option value="">Select a question set</option>@foreach(var set in Model.QuestionSets){<option value="@set.QuestionSetId">@set.Title · @set.QuestionCount questions · @set.TotalMarks marks</option>}</select><span asp-validation-for="QuestionSetId" class="text-danger small"></span></div>
-            <div class="col-12"><label asp-for="Description" class="form-label text-light">Instructions <span class="text-muted">(optional)</span></label><textarea asp-for="Description" class="form-control-dark" rows="2" placeholder="Instructions for students"></textarea></div>
-        </div></div>
-        <div class="px mb-4"><h2 class="px-title">Schedule</h2><div class="row g-3"><div class="col-md-4"><label asp-for="DurationMinutes" class="form-label text-light">Duration (minutes) *</label><input asp-for="DurationMinutes" type="number" class="form-control-dark" min="5" max="360" /><span asp-validation-for="DurationMinutes" class="text-danger small"></span></div><div class="col-md-4"><label asp-for="StartTime" class="form-label text-light">Starts *</label><input asp-for="StartTime" type="datetime-local" class="form-control-dark" value="@Model.StartTime.ToString("yyyy-MM-ddTHH:mm")" /></div><div class="col-md-4"><label asp-for="EndTime" class="form-label text-light">Ends *</label><input asp-for="EndTime" type="datetime-local" class="form-control-dark" value="@Model.EndTime.ToString("yyyy-MM-ddTHH:mm")" /></div></div></div>
-        <div class="px mb-4"><h2 class="px-title">Options</h2><label class="d-flex align-items-center gap-2 text-light"><input asp-for="ShuffleQuestions" class="form-check-input" /> Shuffle question order for each student</label><label class="d-flex align-items-center gap-2 text-light mt-2"><input asp-for="NegativeMarking" class="form-check-input" /> Apply penalty for incorrect answers</label></div>
-        <div class="d-flex justify-content-between mb-5"><a asp-controller="Dashboard" asp-action="Index" class="btn btn-outline-secondary">Cancel</a><button type="submit" class="px-btn">Publish exam &rarr;</button></div>
-    </form>
-</div></div>
-@section Scripts { <partial name="_ValidationScriptsPartial" /> }
+
+@{
+    ViewData["Title"] = "Create Exam";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+}
+
+<div class="dash">
+    <div class="container exam-create-wrap">
+
+        <a asp-controller="Dashboard"
+           asp-action="Index"
+           class="text-muted small">
+            &larr; Back to dashboard
+        </a>
+
+        <div class="mb-4 mt-2">
+            <h1 class="h3 text-white">Create exam</h1>
+            <p class="muted">
+                Choose one question set, add the exam schedule, and publish.
+            </p>
+        </div>
+
+        <form asp-action="Create" method="post">
+
+            <div asp-validation-summary="ModelOnly"
+                 class="alert alert-danger"
+                 role="alert">
+            </div>
+
+            @Html.AntiForgeryToken()
+
+            <div class="px mb-4">
+                <h2 class="px-title">Exam details</h2>
+
+                <div class="row g-3">
+
+                    <div class="col-md-8">
+                        <label asp-for="Title" class="form-label text-light">
+                            Exam title *
+                        </label>
+
+                        <input asp-for="Title"
+                               class="form-control-dark"
+                               placeholder="e.g. Data Structures Midterm" />
+
+                        <span asp-validation-for="Title"
+                              class="text-danger small">
+                        </span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="QuestionSetId" class="form-label text-light">
+                            Question set *
+                        </label>
+
+                        <select asp-for="QuestionSetId" class="form-select-dark">
+                            <option value="">Select a question set</option>
+
+                            @foreach (var set in Model.QuestionSets)
+                            {
+                                <option value="@set.QuestionSetId">
+                                    @set.Title · @set.QuestionCount questions · @set.TotalMarks marks
+                                </option>
+                            }
+                        </select>
+
+                        <span asp-validation-for="QuestionSetId"
+                              class="text-danger small">
+                        </span>
+                    </div>
+
+                    <div class="col-12">
+                        <label asp-for="Description" class="form-label text-light">
+                            Instructions <span class="text-muted">(optional)</span>
+                        </label>
+
+                        <textarea asp-for="Description"
+                                  class="form-control-dark"
+                                  rows="2"
+                                  placeholder="Instructions for students">
+                        </textarea>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="px mb-4">
+                <h2 class="px-title">Schedule</h2>
+
+                <div class="row g-3">
+
+                    <div class="col-md-4">
+                        <label asp-for="DurationMinutes" class="form-label text-light">
+                            Duration (minutes) *
+                        </label>
+
+                        <input asp-for="DurationMinutes"
+                               type="number"
+                               class="form-control-dark"
+                               min="5"
+                               max="360" />
+
+                        <span asp-validation-for="DurationMinutes"
+                              class="text-danger small">
+                        </span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="StartTime" class="form-label text-light">
+                            Starts *
+                        </label>
+
+                        <input asp-for="StartTime"
+                               type="datetime-local"
+                               class="form-control-dark"
+                               value="@Model.StartTime.ToString("yyyy-MM-ddTHH:mm")" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="EndTime" class="form-label text-light">
+                            Ends *
+                        </label>
+
+                        <input asp-for="EndTime"
+                               type="datetime-local"
+                               class="form-control-dark"
+                               value="@Model.EndTime.ToString("yyyy-MM-ddTHH:mm")" />
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="px mb-4">
+                <h2 class="px-title">Options</h2>
+
+                <label class="d-flex align-items-center gap-2 text-light">
+                    <input asp-for="ShuffleQuestions" class="form-check-input" />
+                    Shuffle question order for each student
+                </label>
+
+                <label class="d-flex align-items-center gap-2 text-light mt-2">
+                    <input asp-for="NegativeMarking" class="form-check-input" />
+                    Apply penalty for incorrect answers
+                </label>
+            </div>
+
+            <div class="d-flex justify-content-between mb-5">
+                <a asp-controller="Dashboard"
+                   asp-action="Index"
+                   class="btn btn-outline-secondary">
+                    Cancel
+                </a>
+
+                <button type="submit" class="px-btn">
+                    Publish exam &rarr;
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

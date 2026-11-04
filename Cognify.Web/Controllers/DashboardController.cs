@@ -199,6 +199,54 @@ namespace Cognify.Web.Controllers
             };
         }
 
+        private async Task<QuestionSet?> GetManageableSetAsync(int id)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var role = User.FindFirstValue(ClaimTypes.Role);
+            return await _context.QuestionSets
+                .Include(s => s.Questions)
+                .FirstOrDefaultAsync(s => s.QuestionSetId == id &&
+                    (role == UserRole.Admin.ToString() || s.CreatedByUserId == userId));
+        }
+        
+        private async Task PopulateCreateSetViewAsync()
+        {
+            ViewBag.Concepts = await _context.ConceptTags
+                .OrderBy(c => c.Name)
+                .Select(c => new { c.ConceptTagId, c.Name, c.Subject })
+                .ToListAsync();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> EditSet(string token)
+        {
+            if (!_urlTokens.TryUnprotectQuestionSet(token, out var id)) return BadRequest("Invalid question bank link.");
+            var set = await GetManageableSetAsync(id);
+            if (set == null) return RedirectToAction(nameof(Index));
+
+            await PopulateCreateSetViewAsync();
+            ViewBag.QuestionSetToken = _urlTokens.ProtectQuestionSet(set.QuestionSetId);
+            return View(new QuestionSetCreateVM
+            {
+                Title = set.Title,
+                Description = set.Description,
+                Subject = set.Subject,
+                ConceptTagId = set.Questions.Select(q => (int?)q.ConceptTagId).FirstOrDefault(),
+                Questions = set.Questions.OrderBy(q => q.QuestionId).Select(q => new QuestionInputVM
+                {
+                    QuestionId = q.QuestionId,
+                    Text = q.Text,
+                    OptionA = q.OptionA,
+                    OptionB = q.OptionB,
+                    OptionC = q.OptionC,
+                    OptionD = q.OptionD,
+                    CorrectOption = q.CorrectOption,
+                    DifficultyLevel = q.DifficultyLevel,
+                    Marks = q.Marks
+                }).ToList()
+            });
+        }
+
         private async Task<DashboardVM> BuildStudentDashboardAsync(User user)
         {
             var userId = user.UserId;

@@ -100,6 +100,61 @@ namespace Cognify.Web.Controllers
             });
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteExam(string token)
+        {
+            if (!_urlTokens.TryUnprotectExam(token, out var examId))
+                return BadRequest("Invalid exam link.");
+
+            var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdValue, out var userId))
+                return Forbid();
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+            if (user == null || (user.Role != UserRole.Teacher && user.Role != UserRole.Admin))
+                return Forbid();
+
+            var exam = await _context.Exams
+                .Include(e => e.ExamQuestions)
+                .Include(e => e.QuestionPools)
+                .Include(e => e.Attempts).ThenInclude(a => a.Answers)
+                .Include(e => e.Attempts).ThenInclude(a => a.ConceptPerformances)
+                .FirstOrDefaultAsync(e => e.ExamId == examId &&
+                    (user.Role == UserRole.Admin || e.CreatedByUserId == user.UserId));
+
+            if (exam == null)
+            {
+                TempData["ErrorMessage"] = "The exam could not be found or you do not have permission to delete it.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var answers = exam.Attempts.SelectMany(a => a.Answers).ToList();
+                var performances = exam.Attempts.SelectMany(a => a.ConceptPerformances).ToList();
+
+                _context.AttemptAnswers.RemoveRange(answers);
+                _context.ConceptPerformances.RemoveRange(performances);
+                _context.ExamAttempts.RemoveRange(exam.Attempts);
+                _context.ExamQuestionPools.RemoveRange(exam.QuestionPools);
+                _context.ExamQuestions.RemoveRange(exam.ExamQuestions);
+                _context.Exams.Remove(exam);
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                TempData["SuccessMessage"] = $"Exam \"{exam.Title}\" was deleted.";
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                TempData["ErrorMessage"] = "The exam could not be deleted. No changes were made.";
+            }
+
+            return RedirectToAction("Index", "Dashboard");
+        }
+
         [HttpGet]
         public async Task<IActionResult> Create()
         {

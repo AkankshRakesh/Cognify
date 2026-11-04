@@ -1,44 +1,280 @@
 @model Cognify.Web.ViewModels.TeacherSubmissionsVM
-@{ ViewData["Title"] = "Submissions - " + Model.ExamTitle; }
-@section Styles { <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" /> }
 
-<div class="dash"><div class="container submissions-page">
-    <div class="submissions-header"><div><a asp-controller="Dashboard" asp-action="Index" class="text-muted small">&larr; Back to dashboard</a><p class="hero-hello mt-3 mb-1">Exam submissions</p><h1 class="text-white mb-2">@Model.ExamTitle</h1><p class="muted mb-0">@Model.QuestionCount questions · @Model.TotalMarks marks · @Model.Submissions.Count submission@(Model.Submissions.Count == 1 ? "" : "s")</p></div><a asp-controller="Exam" asp-action="Create" class="btn btn-outline-warning btn-sm">Create another exam</a></div>
-    <div class="share-banner px mb-4"><div><span class="share-label">Student access link</span><div class="share-link-preview"><span class="link-dot"></span><span>Protected exam link ready to share</span></div><small class="d-block text-muted mt-1">Students must log in and can open this link only while the exam window is active.</small></div><div class="d-flex gap-2">
-    
-    <button class="button" type="button" id="button" title="Copy link" data-url="@Model.ShareUrl">
-        <div class="content">
-            <div class="copy">
+@{
+    ViewData["Title"] = "Submissions - " + Model.ExamTitle;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+}
+
+<div class="dash">
+    <div class="container submissions-page">
+
+        <div class="submissions-header">
             <div>
-                Copy Link
+                <a asp-controller="Dashboard"
+                   asp-action="Index"
+                   class="text-muted small">
+                    &larr; Back to dashboard
+                </a>
+
+                <p class="hero-hello mt-3 mb-1">Exam submissions</p>
+
+                <h1 class="text-white mb-2">@Model.ExamTitle</h1>
+
+                <p class="muted mb-0">
+                    @Model.QuestionCount questions ·
+                    @Model.TotalMarks marks ·
+                    @Model.Submissions.Count submission@(Model.Submissions.Count == 1 ? "" : "s")
+                </p>
             </div>
-            </div>
-            <div class="copied">Copied</div>
+
+            <a asp-controller="Exam"
+               asp-action="Create"
+               class="btn btn-outline-warning btn-sm">
+                Create another exam
+            </a>
         </div>
-    </button>
-    
-    </div></div>
-    <section class="stat-grid mb-4"><div class="px px-stat t-teal"><span class="stat-label">Submissions</span><span class="stat-num">@Model.Submissions.Count</span><span class="stat-hint">All attempts, including in progress</span></div><div class="px px-stat t-amber"><span class="stat-label">Average score</span><span class="stat-num">@Model.AverageScore.ToString("0.#")<small>%</small></span><span class="stat-hint">Completed attempts</span></div><div class="px px-stat t-coral"><span class="stat-label">Highest score</span><span class="stat-num">@Model.HighestScore.ToString("0.#")<small>%</small></span><span class="stat-hint">Completed attempts</span></div></section>
-    <div class="d-flex justify-content-between align-items-end mb-3"><div><h2 class="px-title mb-1">All submissions</h2><p class="muted mb-0">Open a submission to inspect every answered question.</p></div><span class="small text-muted">@Model.StartTime.ToLocalTime().ToString("dd MMM yyyy, h:mm tt") – @Model.EndTime.ToLocalTime().ToString("dd MMM yyyy, h:mm tt")</span></div>
-    @if (!Model.Submissions.Any()) { <div class="px px-empty"><p>No submissions yet.</p><small>Share the exam link with students to start receiving attempts.</small></div> }
-    @foreach (var submission in Model.Submissions) { <details class="submission-card px"><summary><div class="submission-summary"><div class="submission-student"><strong>@submission.StudentName</strong><small>@submission.StudentEmail</small></div><div><span class="submission-status @(submission.IsCompleted ? "is-complete" : "is-progress")">@submission.Status</span></div><div class="submission-score"><strong>@submission.Score.ToString("0.#")/@submission.TotalMarks</strong><small>@submission.Percent.ToString("0.#")%</small></div><div class="submission-timing"><strong>@submission.DurationText</strong><small>@((submission.SubmittedOn ?? submission.StartedOn).ToLocalTime().ToString("dd MMM, h:mm tt"))</small></div></div></summary><div class="submission-detail"><div class="submission-metrics"><span><strong>@submission.CorrectCount</strong> correct</span><span><strong>@submission.WrongCount</strong> wrong</span><span><strong>@submission.SkippedCount</strong> skipped</span>@if(submission.CalibrationScore.HasValue){<span><strong>@submission.CalibrationScore.Value.ToString("0.#")%</strong> calibration</span>}</div>@if(!submission.Answers.Any()){<p class="muted mb-0">This attempt has not answered any questions yet.</p>}else{<div class="answer-list">@foreach(var answer in submission.Answers){<div class="answer-row"><div><span class="answer-number">Q@answer.QuestionNumber</span><strong>@answer.QuestionText</strong><small>Selected: @(string.IsNullOrWhiteSpace(answer.SelectedOption) ? "Skipped" : answer.SelectedOption) · Correct: @answer.CorrectOption · @answer.Difficulty</small></div><span class="answer-result @(answer.IsCorrect ? "is-correct" : "is-wrong")">@(answer.IsCorrect ? "+" : "")@answer.MarksAwarded.ToString("0.#")</span></div>}</div>}</div></details> }
-</div></div>
-@section Scripts { <script>document.addEventListener('click', async function (event) { const button = event.target.closest('.copy-url-button'); if (!button) return; const original = button.textContent; try { await navigator.clipboard.writeText(button.dataset.url); button.textContent = 'Copied'; } catch { button.textContent = 'Copy failed'; } setTimeout(() => button.textContent = original, 1400); });
 
-const ANIMATE_TIMEOUT = 3000 + 200;
+        <div class="share-banner px mb-4">
+            <div>
+                <span class="share-label">Student access link</span>
 
-const button = document.getElementById("button");
+                <div class="share-link-preview">
+                    <span class="link-dot"></span>
+                    <span>Protected exam link ready to share</span>
+                </div>
 
-button.addEventListener("click", event => {
-  if (!button.classList.contains("animate")) {
-    button.classList.add("animate");
-    setTimeout(() => {
-      button.classList.remove("animate");
-    }, ANIMATE_TIMEOUT);
-  }
-});
+                <small class="d-block text-muted mt-1">
+                    Students must log in and can open this link only while the exam window is active.
+                </small>
+            </div>
 
-</script> 
+            <div class="d-flex gap-2">
 
+                <button class="button copy-url-button"
+                        type="button"
+                        id="button"
+                        title="Copy link"
+                        data-url="@Model.ShareUrl">
 
-</script> }
+                    <div class="content">
+                        <div class="copy">
+                            <div>
+                                Copy Link
+                            </div>
+                        </div>
+
+                        <div class="copied">Copied</div>
+                    </div>
+                </button>
+
+            </div>
+        </div>
+
+        <section class="stat-grid mb-4">
+
+            <div class="px px-stat t-teal">
+                <span class="stat-label">Submissions</span>
+                <span class="stat-num">@Model.Submissions.Count</span>
+                <span class="stat-hint">All attempts, including in progress</span>
+            </div>
+
+            <div class="px px-stat t-amber">
+                <span class="stat-label">Average score</span>
+                <span class="stat-num">
+                    @Model.AverageScore.ToString("0.#")<small>%</small>
+                </span>
+                <span class="stat-hint">Completed attempts</span>
+            </div>
+
+            <div class="px px-stat t-coral">
+                <span class="stat-label">Highest score</span>
+                <span class="stat-num">
+                    @Model.HighestScore.ToString("0.#")<small>%</small>
+                </span>
+                <span class="stat-hint">Completed attempts</span>
+            </div>
+
+        </section>
+
+        <div class="d-flex justify-content-between align-items-end mb-3">
+            <div>
+                <h2 class="px-title mb-1">All submissions</h2>
+
+                <p class="muted mb-0">
+                    Open a submission to inspect every answered question.
+                </p>
+            </div>
+
+            <span class="small text-muted">
+                @Model.StartTime.ToLocalTime().ToString("dd MMM yyyy, h:mm tt") –
+                @Model.EndTime.ToLocalTime().ToString("dd MMM yyyy, h:mm tt")
+            </span>
+        </div>
+
+        @if (!Model.Submissions.Any())
+        {
+            <div class="px px-empty">
+                <p>No submissions yet.</p>
+                <small>Share the exam link with students to start receiving attempts.</small>
+            </div>
+        }
+
+        @foreach (var submission in Model.Submissions)
+        {
+            <details class="submission-card px">
+
+                <summary>
+                    <div class="submission-summary">
+
+                        <div class="submission-student">
+                            <strong>@submission.StudentName</strong>
+                            <small>@submission.StudentEmail</small>
+                        </div>
+
+                        <div>
+                            <span class="submission-status @(submission.IsCompleted ? "is-complete" : "is-progress")">
+                                @submission.Status
+                            </span>
+                        </div>
+
+                        <div class="submission-score">
+                            <strong>
+                                @submission.Score.ToString("0.#")/@submission.TotalMarks
+                            </strong>
+                            <small>@submission.Percent.ToString("0.#")%</small>
+                        </div>
+
+                        <div class="submission-timing">
+                            <strong>@submission.DurationText</strong>
+                            <small>
+                                @((submission.SubmittedOn ?? submission.StartedOn).ToLocalTime().ToString("dd MMM, h:mm tt"))
+                            </small>
+                        </div>
+
+                    </div>
+                </summary>
+
+                <div class="submission-detail">
+
+                    <div class="submission-metrics">
+                        <span>
+                            <strong>@submission.CorrectCount</strong> correct
+                        </span>
+
+                        <span>
+                            <strong>@submission.WrongCount</strong> wrong
+                        </span>
+
+                        <span>
+                            <strong>@submission.SkippedCount</strong> skipped
+                        </span>
+
+                        @if (submission.CalibrationScore.HasValue)
+                        {
+                            <span>
+                                <strong>@submission.CalibrationScore.Value.ToString("0.#")%</strong> calibration
+                            </span>
+                        }
+                    </div>
+
+                    @if (!submission.Answers.Any())
+                    {
+                        <p class="muted mb-0">
+                            This attempt has not answered any questions yet.
+                        </p>
+                    }
+                    else
+                    {
+                        <div class="answer-list">
+
+                            @foreach (var answer in submission.Answers)
+                            {
+                                <div class="answer-row">
+
+                                    <div>
+                                        <span class="answer-number">
+                                            Q@answer.QuestionNumber
+                                        </span>
+
+                                        <strong>@answer.QuestionText</strong>
+
+                                        <small>
+                                            Selected: @(string.IsNullOrWhiteSpace(answer.SelectedOption) ? "Skipped" : answer.SelectedOption)
+                                            · Correct: @answer.CorrectOption
+                                            · @answer.Difficulty
+                                        </small>
+                                    </div>
+
+                                    <span class="answer-result @(answer.IsCorrect ? "is-correct" : "is-wrong")">
+                                        @(answer.IsCorrect ? "+" : "")@answer.MarksAwarded.ToString("0.#")
+                                    </span>
+
+                                </div>
+                            }
+
+                        </div>
+                    }
+
+                </div>
+            </details>
+        }
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const button = document.querySelector('.copy-url-button');
+
+            if (!button) {
+                console.error('Copy button not found.');
+                return;
+            }
+
+            button.addEventListener('click', async function () {
+                const url = button.getAttribute('data-url');
+
+                if (!url || !url.trim()) {
+                    alert('The share link is empty.');
+                    console.error('Model.ShareUrl is empty.');
+                    return;
+                }
+
+                try {
+                    if (navigator.clipboard && window.isSecureContext) {
+                        await navigator.clipboard.writeText(url);
+                    } else {
+                        const textArea = document.createElement('textarea');
+                        textArea.value = url;
+                        textArea.style.position = 'fixed';
+                        textArea.style.left = '-9999px';
+
+                        document.body.appendChild(textArea);
+                        textArea.select();
+
+                        const copied = document.execCommand('copy');
+                        textArea.remove();
+
+                        if (!copied) {
+                            throw new Error('Fallback copy failed.');
+                        }
+                    }
+
+                    button.classList.add('animate');
+
+                    setTimeout(function () {
+                        button.classList.remove('animate');
+                    }, 3200);
+                }
+                catch (error) {
+                    console.error('Clipboard error:', error);
+                    alert('Unable to copy the link. Please copy it manually: ' + url);
+                }
+            });
+        });
+    </script>
+}
