@@ -38,6 +38,7 @@ namespace Cognify.Web.ViewModels
         public int QuestionCount { get; set; }
         public int TotalMarks { get; set; }
         public DateTime CreatedOn { get; set; }
+        public bool IsBuiltIn { get; set; }
     }
 
     public class TeacherExamSummaryVM
@@ -53,6 +54,7 @@ namespace Cognify.Web.ViewModels
         public DateTime EndTime { get; set; }
         public bool IsAdaptive { get; set; }
         public bool IsConfidenceWeighted { get; set; }
+        public bool IsPublic { get; set; }
         public bool IsActive => StartTime <= DateTime.UtcNow && EndTime >= DateTime.UtcNow;
         public bool IsUpcoming => StartTime > DateTime.UtcNow;
         public bool IsEnded => EndTime < DateTime.UtcNow;

@@ -1,0 +1,53 @@
+@model Cognify.Web.ViewModels.ExamStartVM
+@{
+    ViewData["Title"] = "Confirm exam start - " + Model.ExamTitle;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+}
+
+<div class="dash">
+    <div class="container dash-wrap">
+        <div class="modal fade" id="confirmExamStart" tabindex="-1"
+            aria-labelledby="confirmExamStartLabel" aria-hidden="true"
+            data-bs-backdrop="false" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered responsive-modal-dialog">
+                <div class="modal-content question-set-modal">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="confirmExamStartLabel">Ready to begin?</h1>
+                    </div>
+                    <div class="modal-body">
+                        <h2 class="h5">@Model.ExamTitle</h2>
+                        @if (!string.IsNullOrWhiteSpace(Model.Description))
+                        {
+                            <p>@Model.Description</p>
+                        }
+                        <p class="mb-2">This exam has @Model.QuestionCount questions and a @Model.DurationMinutes-minute time limit.</p>
+                        <p class="text-warning mb-0">
+                            Your timer starts when you confirm and continues running if you leave this page or close your browser.
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <a asp-controller="Dashboard" asp-action="Index" class="btn btn-outline-light">Not now</a>
+                        <form asp-controller="ExamAttempt" asp-action="ConfirmStart" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="token" value="@Model.ExamToken" />
+                            <button type="submit" class="px-btn">Start exam</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const modalElement = document.getElementById("confirmExamStart");
+            document.body.appendChild(modalElement);
+            bootstrap.Modal.getOrCreateInstance(modalElement).show();
+        })();
+    </script>
+}

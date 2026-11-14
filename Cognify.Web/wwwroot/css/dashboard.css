@@ -30,7 +30,7 @@
 .exam-create-wrap { max-width: 960px; margin: 0 auto; }
 .form-control-dark, .form-select-dark { background: var(--d-panel-2); border: 2px solid var(--d-line); color: var(--d-text); padding: .7rem .9rem; border-radius: 4px; width: 100%; }
 .form-control-dark:focus, .form-select-dark:focus { background: #232e44; border-color: var(--d-amber); color: #fff; outline: none; box-shadow: 0 0 0 3px rgba(245,184,61,.2); }
-.question-set-modal { background: var(--d-panel); border: 2px solid var(--d-line); color: var(--d-text); }
+.question-set-modal { background: black; border: 2px solid var(--d-line); color: var(--d-text); }
 .question-set-item { background: var(--d-panel-2); border: 1px solid var(--d-line); }
 .set-card { margin-bottom: .5rem; }
 .t-badge { font-size: .68rem; padding: .2rem .45rem; border-radius: 2px; font-weight: 700; text-transform: uppercase; }
@@ -337,7 +337,7 @@
 
 /* Pixel button with press-down depth */
 .px-btn {
-    --b: var(--d-amber); --bd: #a9791a;
+    --b: #f5b83d; --bd: #a9791a;
     display: inline-block; flex-shrink: 0;
     padding: .65rem 1.3rem; margin-bottom: 4px;
     font: 700 .88rem 'Sora', sans-serif; text-decoration: none;
@@ -416,4 +416,155 @@
 .quest > div:last-child form button:hover {
     background: #dc3545;
     color: white;
+}
+
+
+.option-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.option-row .form-control-dark {
+    flex: 1;
+}
+
+.option-bubble {
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #cbd5e1;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: background .15s, border-color .15s, color .15s;
+}
+
+.option-bubble.correct {
+    color: #fff;
+    background: #198754;
+    border-color: #198754;
+}
+
+/* title ("Ready to begin?") */
+.question-set-modal .modal-title {
+    color: #ffffff;
+}
+
+/* exam title (the h2) */
+.question-set-modal .modal-body h2 {
+    color: #ffffff;
+}
+
+/* description and question/duration paragraph */
+.question-set-modal .modal-body p {
+    color: #cbd5e1;
+}
+
+/* the yellow warning line (Bootstrap's text-warning) */
+.question-set-modal .modal-body .text-warning {
+    color: #fbbf24 !important;
+}
+
+.responsive-modal-dialog {
+    width: calc(100% - 1rem);
+    max-width: 32rem;
+    margin: .5rem auto;
+}
+
+.question-set-modal {
+    max-height: calc(100vh - 1rem);
+    overflow: hidden;
+}
+
+@supports (height: 100dvh) {
+    .question-set-modal {
+        max-height: calc(100dvh - 1rem);
+    }
+}
+
+.question-set-modal .modal-header,
+.question-set-modal .modal-footer {
+    flex: 0 0 auto;
+    gap: .75rem;
+    padding: 1rem clamp(1rem, 4vw, 1.5rem);
+}
+
+.question-set-modal .modal-header {
+    align-items: flex-start;
+}
+
+.question-set-modal .modal-title,
+.question-set-modal .modal-body {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.question-set-modal .modal-body {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 1rem clamp(1rem, 4vw, 1.5rem);
+}
+
+.question-set-modal .modal-footer {
+    flex-wrap: wrap;
+}
+
+.question-set-modal .modal-footer > form {
+    display: flex !important;
+    margin: 0;
+}
+
+@media (min-width: 576px) {
+    .responsive-modal-dialog {
+        width: calc(100% - 2rem);
+        margin: 1rem auto;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .question-set-modal .modal-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .question-set-modal .modal-footer > a,
+    .question-set-modal .modal-footer > form,
+    .question-set-modal .modal-footer > form > button {
+        width: 100%;
+    }
+
+    .question-set-modal .modal-footer > a,
+    .question-set-modal .modal-footer > form > button {
+        justify-content: center;
+        white-space: normal;
+    }
+}
+
+.modal {
+    position: fixed !important;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    z-index: 1055;
+    overflow-y: auto;
+}
+
+.modal[style*="display: block"] {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal .modal-dialog {
+    margin: .5rem;
+    width: 100%;
+    max-width: 32rem;
 }

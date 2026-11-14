@@ -25,6 +25,9 @@ namespace Cognify.Services
             if (string.IsNullOrEmpty(answer.SelectedOption))
                 return 0; // unattempted - no confidence was given either
 
+            if (!answer.IsCorrect && !negativeMarking)
+                return 0;
+
             var confidence = answer.ConfidenceLevel ?? Core.Enums.ConfidenceLevel.Medium;
             var multiplier = Multipliers[(answer.IsCorrect, confidence)];
 

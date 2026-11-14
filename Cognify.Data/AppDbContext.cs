@@ -75,7 +75,8 @@ namespace Cognify.Data
             modelBuilder.Entity<ExamAttempt>()
                 .HasOne(a => a.Exam)
                 .WithMany(e => e.Attempts)
-                .HasForeignKey(a => a.ExamId);
+                .HasForeignKey(a => a.ExamId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<ExamAttempt>()
                 .HasOne(a => a.User)

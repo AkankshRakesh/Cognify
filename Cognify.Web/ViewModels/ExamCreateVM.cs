@@ -13,6 +13,9 @@ namespace Cognify.Web.ViewModels
 
         public string Subject { get; set; } = "Computer Science";
 
+        [Display(Name = "Make exam public")]
+        public bool IsPublic { get; set; } = true;
+
         [Required(ErrorMessage = "Please select a question set")]
         [Display(Name = "Question Set")]
         public int QuestionSetId { get; set; }
@@ -33,6 +36,16 @@ namespace Cognify.Web.ViewModels
         [Display(Name = "Enable Negative Marking")]
         public bool NegativeMarking { get; set; }
 
+        [Display(Name = "Enable confidence-based marking")]
+        public bool ConfidenceWeighted { get; set; }
+
+        [Display(Name = "Enable adaptive IRT exam")]
+        public bool Adaptive { get; set; }
+
+        [Range(1, int.MaxValue, ErrorMessage = "Adaptive exams must contain at least one question.")]
+        [Display(Name = "Questions per student")]
+        public int AdaptiveQuestionCount { get; set; } = 20;
+
         [Display(Name = "Shuffle Questions")]
         public bool ShuffleQuestions { get; set; } = true;
 
@@ -46,6 +59,7 @@ namespace Cognify.Web.ViewModels
         public string Subject { get; set; } = string.Empty;
         public int QuestionCount { get; set; }
         public int TotalMarks { get; set; }
+        public bool IsBuiltIn { get; set; }
     }
 
     public class ConceptPoolVM

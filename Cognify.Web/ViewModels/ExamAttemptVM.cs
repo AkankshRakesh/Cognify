@@ -2,6 +2,15 @@ using Cognify.Core.Enums;
 
 namespace Cognify.Web.ViewModels
 {
+    public class ExamStartVM
+    {
+        public string ExamToken { get; set; } = string.Empty;
+        public string ExamTitle { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public int DurationMinutes { get; set; }
+        public int QuestionCount { get; set; }
+    }
+
     public class ExamAttemptVM
     {
         public int AttemptId { get; set; }
@@ -17,8 +26,11 @@ namespace Cognify.Web.ViewModels
         public string OptionC { get; set; } = string.Empty;
         public string OptionD { get; set; } = string.Empty;
         public bool ShowConfidenceSlider { get; set; }
+        public bool NegativeMarking { get; set; }
+        public bool IsAdaptive { get; set; }
         public int SecondsRemaining { get; set; }
         public int CurrentQuestionNumber { get; set; }
+        public int TotalQuestionCount { get; set; }
     }
 
     public class AnswerSubmitVM
@@ -27,6 +39,7 @@ namespace Cognify.Web.ViewModels
         public string QuestionToken { get; set; } = string.Empty;
         public string? SelectedOption { get; set; }
         public ConfidenceLevel? ConfidenceLevel { get; set; }
+        public bool Skip { get; set; }
     }
 
     public class ResultSummaryVM
@@ -34,6 +47,11 @@ namespace Cognify.Web.ViewModels
         public int AttemptId { get; set; }
         public string AttemptToken { get; set; } = string.Empty;
         public string ExamTitle { get; set; } = string.Empty;
+        public bool IsAdaptive { get; set; }
+        public double? AbilityEstimate { get; set; }
+        public double? AbilityStandardError { get; set; }
+        public double? ConventionalScore { get; set; }
+        public double? ConventionalTotalMarks { get; set; }
         public double TotalScore { get; set; }
         public double TotalMarks { get; set; }
         public int CorrectCount { get; set; }

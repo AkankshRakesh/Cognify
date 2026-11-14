@@ -41,15 +41,21 @@
 
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
-                <a asp-controller="Dashboard" asp-action="Index" class="text-decoration-none text-muted small">&larr; Exit to Dashboard</a>
                 <h1 class="h3 fw-bold mt-2 text-white">@Model.ExamTitle</h1>
             </div>
             <div class="text-end">
-                <span class="badge bg-warning  fs-6 px-3 py-2">Question @Model.CurrentQuestionNumber</span>
+                <span class="badge bg-warning fs-6 px-3 py-2">
+                    Question @Model.CurrentQuestionNumber of @Model.TotalQuestionCount
+                </span>
+                <div class="mt-2">
+                    <span class="badge bg-danger fs-6 px-3 py-2" id="exam-countdown" role="timer" aria-label="Time remaining">
+                        Time left: <span id="exam-countdown-value">@TimeSpan.FromSeconds(Model.SecondsRemaining).ToString(@"hh\:mm\:ss")</span>
+                    </span>
+                </div>
             </div>
         </div>
 
-        <form asp-controller="ExamAttempt" asp-action="SubmitAnswer" method="post">
+        <form id="exam-answer-form" asp-controller="ExamAttempt" asp-action="SubmitAnswer" method="post">
             @Html.AntiForgeryToken()
             <input type="hidden" name="AttemptToken" value="@Model.AttemptToken" />
             <input type="hidden" name="QuestionToken" value="@Model.QuestionToken" />
@@ -91,20 +97,60 @@
                 {
                     <div class="confidence-box">
                         <h6 class="fw-bold text-info mb-2">&#x25C8; Confidence-Weighted Assessment</h6>
-                        <p class="small text-muted mb-3">How confident are you in this answer? High confidence increases marks if correct, but penalizes if wrong.</p>
-                        
+                        @if (Model.IsAdaptive)
+                        {
+                            <p class="small text-muted mb-3">
+                                Record your confidence for the calibration report. The adaptive Bayesian grade is based on your response pattern.
+                            </p>
+                        }
+                        else
+                        {
+                            <p class="small text-muted mb-3">
+                                How confident are you in this answer? High confidence increases marks if correct
+                                @if (Model.NegativeMarking)
+                                {
+                                    <span>and increases the penalty if wrong.</span>
+                                }
+                                else
+                                {
+                                    <span>; incorrect answers receive no penalty.</span>
+                                }
+                            </p>
+                        }
+
                         <div class="d-flex gap-4">
                             <label class="d-flex align-items-center gap-2 text-light">
                                 <input type="radio" name="ConfidenceLevel" value="Low" />
-                                <span>Low Confidence (75% / -25%)</span>
+                                @if (Model.IsAdaptive)
+                                {
+                                    <span>Low Confidence</span>
+                                }
+                                else
+                                {
+                                    <span>Low Confidence (75% / @(Model.NegativeMarking ? "-25%" : "0%"))</span>
+                                }
                             </label>
                             <label class="d-flex align-items-center gap-2 text-light">
                                 <input type="radio" name="ConfidenceLevel" value="Medium" checked />
-                                <span>Medium Confidence (100% / -50%)</span>
+                                @if (Model.IsAdaptive)
+                                {
+                                    <span>Medium Confidence</span>
+                                }
+                                else
+                                {
+                                    <span>Medium Confidence (100% / @(Model.NegativeMarking ? "-50%" : "0%"))</span>
+                                }
                             </label>
                             <label class="d-flex align-items-center gap-2 text-light">
                                 <input type="radio" name="ConfidenceLevel" value="High" />
-                                <span>High Confidence (150% / -100%)</span>
+                                @if (Model.IsAdaptive)
+                                {
+                                    <span>High Confidence</span>
+                                }
+                                else
+                                {
+                                    <span>High Confidence (150% / @(Model.NegativeMarking ? "-100%" : "0%"))</span>
+                                }
                             </label>
                         </div>
                     </div>
@@ -112,10 +158,45 @@
 
                 <div class="d-flex justify-content-between align-items-center mt-4">
                     <a asp-controller="Dashboard" asp-action="Index" class="btn btn-outline-secondary">Leave Exam</a>
-                    <button type="submit" class="px-btn">Next Question &rarr;</button>
+                    <div class="d-flex gap-2">
+                        <button id="skip-question" type="submit" name="Skip" value="true" formnovalidate class="btn btn-outline-light">
+                            Skip question
+                        </button>
+                        <button type="submit" class="px-btn">Next Question &rarr;</button>
+                    </div>
                 </div>
+
             </div>
         </form>
 
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const countdown = document.getElementById("exam-countdown-value");
+            const skipButton = document.getElementById("skip-question");
+            const deadline = Date.now() + @Model.SecondsRemaining * 1000;
+            let expired = false;
+
+            const updateCountdown = () => {
+                const secondsLeft = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+                const hours = Math.floor(secondsLeft / 3600);
+                const minutes = Math.floor((secondsLeft % 3600) / 60);
+                const seconds = secondsLeft % 60;
+                countdown.textContent = [hours, minutes, seconds]
+                    .map(value => String(value).padStart(2, "0"))
+                    .join(":");
+
+                if (secondsLeft === 0 && !expired) {
+                    expired = true;
+                    skipButton.click();
+                }
+            };
+
+            updateCountdown();
+            window.setInterval(updateCountdown, 1000);
+        })();
+    </script>
+}

@@ -1,0 +1,81 @@
+@model Cognify.Web.ViewModels.QuestionSetCreateVM
+
+@{
+    ViewData["Title"] = "View Question Bank";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+}
+
+<div class="dash">
+    <div class="container question-set-page">
+
+        <div class="editor-header">
+            <div>
+                <p class="hero-hello mt-3 mb-1">Built-in sample bank · Read-only</p>
+                <h1 class="text-white mb-2">@Model.Title</h1>
+                <p class="muted mb-0">@Model.Description</p>
+            </div>
+
+            <a asp-controller="Exam"
+               asp-action="Create"
+               class="btn btn-outline-warning btn-sm">
+                Create exam
+            </a>
+        </div>
+
+        <section class="editor-section px mb-4">
+            <div class="editor-section-heading">
+                <span class="editor-step">01</span>
+                <div>
+                    <h2>Question bank details</h2>
+                    <p>@Model.Subject · @Model.Questions.Count questions · This shared sample cannot be changed.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="editor-section px mb-4">
+            <div class="editor-section-heading">
+                <span class="editor-step">02</span>
+                <div>
+                    <h2>Questions</h2>
+                    <p>Review the prompts, answer choices, correct answers, and difficulty levels.</p>
+                </div>
+                <span class="editor-count">@Model.Questions.Count questions</span>
+            </div>
+
+            @for (var index = 0; index < Model.Questions.Count; index++)
+            {
+                var question = Model.Questions[index];
+                <div class="question-editor-card">
+                    <div class="question-card-heading">
+                        <span class="question-number">Question @(index + 1)</span>
+                        <span>@question.DifficultyLevel · @question.Marks mark(s)</span>
+                    </div>
+
+                    <h3 class="h5 text-white">@question.Text</h3>
+
+                    <div class="row g-2">
+                        <div class="col-md-6">A. @question.OptionA</div>
+                        <div class="col-md-6">B. @question.OptionB</div>
+                        <div class="col-md-6">C. @question.OptionC</div>
+                        <div class="col-md-6">D. @question.OptionD</div>
+                    </div>
+
+                    <p class="small text-muted mt-3 mb-0">Correct answer: @question.CorrectOption</p>
+                </div>
+            }
+        </section>
+
+        <div class="editor-actions">
+            <a asp-controller="QuestionBank" asp-action="Index" class="btn btn-outline-secondary">
+                Back to question banks
+            </a>
+            <a asp-controller="Exam" asp-action="Create" class="px-btn">
+                Create exam &rarr;
+            </a>
+        </div>
+
+    </div>
+</div>

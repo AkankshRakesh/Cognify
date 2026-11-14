@@ -3,6 +3,7 @@ using Cognify.Core.Enums;
 using Cognify.Data;
 using Cognify.Web.ViewModels;
 using Cognify.Web.Security;
+using Cognify.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,11 +15,16 @@ namespace Cognify.Web.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IUrlTokenProtector _urlTokens;
+        private readonly ThreeParameterIrtService _irtService;
 
-        public ResultController(AppDbContext context, IUrlTokenProtector urlTokens)
+        public ResultController(
+            AppDbContext context,
+            IUrlTokenProtector urlTokens,
+            ThreeParameterIrtService irtService)
         {
             _context = context;
             _urlTokens = urlTokens;
+            _irtService = irtService;
         }
 
         // GET: /Result/Details?examId=1 or /Result/Details?attemptId=5
@@ -58,13 +64,36 @@ namespace Cognify.Web.Controllers
                 return RedirectToAction("Index", "Dashboard");
             }
 
+            var isAdaptive = attempt.Exam?.UsesIrtAdaptive ?? attempt.IsAdaptiveSnapshot ?? false;
+            var negativeMarking = attempt.Exam?.NegativeMarking ?? attempt.NegativeMarkingSnapshot ?? false;
+            var abilityEstimate = isAdaptive
+                ? _irtService.EstimateAbility(attempt.Answers)
+                : null;
+            var conventionalMarks = isAdaptive
+                ? attempt.Answers.Sum(answer => answer.Question?.Marks ?? 0)
+                : (int?)null;
+            var conventionalScore = isAdaptive
+                ? Math.Max(0, attempt.Answers.Sum(answer =>
+                {
+                    var marks = answer.Question?.Marks ?? 0;
+                    return answer.IsCorrect
+                        ? marks
+                        : negativeMarking ? -0.25 * marks : 0;
+                }))
+                : (double?)null;
+
             var vm = new ResultSummaryVM
             {
                 AttemptId = attempt.AttemptId,
                 AttemptToken = _urlTokens.ProtectAttempt(attempt.AttemptId),
-                ExamTitle = attempt.Exam?.Title ?? "Exam Assessment",
+                ExamTitle = attempt.Exam?.Title ?? attempt.ExamTitleSnapshot ?? "Exam Assessment",
                 TotalScore = attempt.TotalScore,
-                TotalMarks = attempt.Exam?.TotalMarks ?? 100,
+                TotalMarks = attempt.Exam?.TotalMarks ?? attempt.ExamTotalMarksSnapshot ?? 100,
+                IsAdaptive = isAdaptive,
+                AbilityEstimate = abilityEstimate?.Theta,
+                AbilityStandardError = abilityEstimate?.StandardError,
+                ConventionalScore = conventionalScore,
+                ConventionalTotalMarks = conventionalMarks,
                 CorrectCount = attempt.Answers.Count(a => a.IsCorrect),
                 WrongCount = attempt.Answers.Count(a => !a.IsCorrect && !string.IsNullOrEmpty(a.SelectedOption)),
                 UnattemptedCount = attempt.Answers.Count(a => string.IsNullOrEmpty(a.SelectedOption)),

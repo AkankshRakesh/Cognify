@@ -13,11 +13,6 @@
 
         <div class="submissions-header">
             <div>
-                <a asp-controller="Dashboard"
-                   asp-action="Index"
-                   class="text-muted small">
-                    &larr; Back to dashboard
-                </a>
 
                 <p class="hero-hello mt-3 mb-1">Exam submissions</p>
 
@@ -208,9 +203,18 @@
                                         </small>
                                     </div>
 
-                                    <span class="answer-result @(answer.IsCorrect ? "is-correct" : "is-wrong")">
-                                        @(answer.IsCorrect ? "+" : "")@answer.MarksAwarded.ToString("0.#")
-                                    </span>
+                                    @if (submission.IsAdaptive)
+                                    {
+                                        <span class="answer-result @(answer.IsCorrect ? "is-correct" : "is-wrong")">
+                                            @(answer.IsCorrect ? "Correct" : "Incorrect")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="answer-result @(answer.IsCorrect ? "is-correct" : "is-wrong")">
+                                            @(answer.IsCorrect ? "+" : "")@answer.MarksAwarded.ToString("0.#")
+                                        </span>
+                                    }
 
                                 </div>
                             }

@@ -93,8 +93,10 @@
                         }
                     </article>
                 }
+            </div>
 
-                <h2 class="px-title mt-4">Recent results</h2>
+            <div class="col-lg-5">
+                <h2 class="px-title">Recent results</h2>
                 @if (!Model.RecentResults.Any())
                 {
                     <div class="px px-empty">
@@ -122,9 +124,8 @@
                     </article>
                 }
             </div>
-
             <!-- ===== SIDEBAR ===== -->
-            <div class="col-lg-5">
+            <!--
                 <h2 class="px-title">Skill levels</h2>
                 <div class="px skills">
                     @if (!Model.Concepts.Any())
@@ -160,7 +161,7 @@
                         </div>
                     }
                 </div>
-            </div>
+            </div> -->
         </div>
     </div>
 </div>

@@ -3,12 +3,27 @@
 An ASP.NET Core (MVC + Razor) platform for conducting objective (MCQ) exams,
 with two optional diagnostic engines a teacher can toggle independently per exam:
 
-- **Adaptive Difficulty Engine** — mini-CAT style question delivery. A correct
-  answer in a concept pushes the next question in that concept one level harder;
-  a wrong answer eases it one level down.
+- **Adaptive IRT exams** — a 3PL computer-adaptive test selects the next unseen
+  item by maximum Fisher information at the student's Bayesian EAP ability
+  estimate. Adaptive sets must contain at least 100 questions and teachers set
+  the student test length to at most half of the set. The resulting ability is
+  reported as a 0-100 score with its estimate and posterior standard error;
+  conventional raw marks for answered items are also shown as a secondary score.
 - **Confidence-Weighted Scoring** — students tag Low/Medium/High confidence per
-  answer. Scoring rewards calibrated confidence and penalizes confidently-wrong
-  answers more, producing a post-exam "Calibration Report."
+  answer. It increases correct-answer marks by confidence and, only when
+  negative marking is enabled, penalizes incorrect answers by confidence. It
+  also produces a post-exam calibration report.
+
+The adaptive engine currently uses provisional item parameters: discrimination
+`a=1`, difficulty `b=-1/0/1` for Easy/Medium/Hard, and guessing `c=1/k` for
+`k` populated answer options. These are defaults rather than empirically
+calibrated parameters. When both adaptive and confidence options are enabled,
+the Bayesian IRT grade is authoritative and confidence is collected for
+calibration only.
+
+On initialization, the app seeds a built-in, read-only "Computer Science
+Adaptive Test Bank (120 Questions)" set with 40 questions at each difficulty.
+It is shared across teacher accounts and available when creating exams.
 
 Both are OFF by default (Standard scoring / fixed question list), so the platform
 works as a normal MCQ exam tool if neither is enabled.
@@ -22,7 +37,6 @@ Cognify.sln
 ├── Cognify.Services     Business logic: scoring strategies, adaptive engine,
 │                                 concept map / calibration analysis, exam timer
 ├── Cognify.Data         EF Core AppDbContext + repositories (SQL Server)
-└── Cognify.Tests        xUnit tests for scoring & adaptive difficulty logic
 ```
 
 ## What's implemented in full
@@ -40,7 +54,6 @@ Cognify.sln
 - `Program.cs` — full DI wiring for everything above
 - **`HomeController` + `Views/Home/Index.cshtml`** — fully built landing/dashboard
   page (see below)
-- Unit tests for the adaptive difficulty transitions and both scoring strategies
 
 ## What's left as connecting stubs
 
@@ -49,8 +62,7 @@ routes resolve) but contain only `// TODO` bodies — implement using the
 services/repositories above:
 
 - `AccountController` (Identity login/register)
-- `ExamController` (create/configure exam, including the Adaptive pool config
-  and fixed-question-selection screens described in `ExamCreateVM`)
+- `ExamController` (create/configure exam with fixed or adaptive IRT delivery)
 - `ExamAttemptController` (start/attempt/submit flow using
   `IQuestionSelectionService`, `IScoringService`, `ExamTimerService`)
 - `ResultController` (result summary + calibration report + concept map, using
@@ -92,14 +104,9 @@ once the login flow and seed data are in place.
 2. Run `dotnet ef migrations add InitialCreate -p Cognify.Data -s Cognify.Web`
    then `dotnet ef database update` to create the SQL Server schema.
 3. Implement `QuestionBankController` CRUD views for adding/importing questions.
-4. Implement `ExamController.Create` to actually collect an `ExamCreateVM`,
-   persist the `Exam` + `ExamQuestionPool`/`ExamQuestion` rows, and validate that
-   the question bank has enough questions per difficulty when Adaptive is on.
-5. Implement `ExamAttemptController` using `ScoringServiceFactory` to resolve
-   the right `IQuestionSelectionService`, and `ExamTimerService` for server-side
-   deadline enforcement.
-6. Implement `ResultController` to call `IScoringService.CalculateMarks` per
-   answer on submit, then `IConceptAnalyzer` to build the concept map and
-   calibration indices for `ResultSummaryVM`.
+4. Add and calibrate a larger question bank before creating adaptive IRT exams;
+   the seeded starter bank is intentionally below the 100-item minimum.
+5. Continue expanding `ExamAttemptController` and `ResultController` for any
+   additional exam workflows and reporting.
 7. Run `dotnet test` in `Cognify.Tests` to verify the scoring/adaptive
    logic before wiring it into controllers.
