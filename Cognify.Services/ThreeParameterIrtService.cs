@@ -5,9 +5,11 @@ namespace Cognify.Services
 {
     public sealed class ThreeParameterIrtService
     {
-        private const double MinimumTheta = -4;
-        private const double MaximumTheta = 4;
-        private const double ThetaStep = 0.05;
+        public const double MinimumTheta = -4;
+        public const double MaximumTheta = 4;
+        public const double ThetaStep = 0.05;
+        public const double PriorMean = 0;
+        public const double PriorStandardDeviation = 1;
         private const double MinimumProbability = 1e-12;
 
         public Question? SelectNextQuestion(
@@ -40,7 +42,8 @@ namespace Cognify.Services
                 .Select(item => item.Question)
                 .ToList();
 
-            return bestCandidates[new Random(attemptId).Next(bestCandidates.Count)];
+            var selectionSeed = unchecked((attemptId * 397) + answered.Count);
+            return bestCandidates[new Random(selectionSeed).Next(bestCandidates.Count)];
         }
 
         public IrtAbilityEstimate EstimateAbility(IEnumerable<AttemptAnswer> answers)
@@ -89,6 +92,21 @@ namespace Cognify.Services
             return 100 / (1 + Math.Exp(-boundedTheta));
         }
 
+        public IrtItemReport GetItemReport(Question question, AttemptAnswer answer, double theta)
+        {
+            var (discrimination, difficulty, guessing) = GetParameters(question);
+            var probability = ProbabilityCorrect(question, theta);
+            return new IrtItemReport(
+                answer.SequencePosition,
+                answer.IsCorrect,
+                string.IsNullOrWhiteSpace(answer.SelectedOption),
+                discrimination,
+                difficulty,
+                guessing,
+                probability,
+                FisherInformation(question, theta));
+        }
+
         private static double FisherInformation(Question question, double theta)
         {
             var discrimination = 1.0;
@@ -120,6 +138,9 @@ namespace Cognify.Services
                 _ => 0
             };
 
+        private static (double Discrimination, double Difficulty, double Guessing) GetParameters(Question question) =>
+            (1.0, GetDifficultyParameter(question.DifficultyLevel), GetGuessingParameter(question));
+
         private static double GetGuessingParameter(Question question)
         {
             var optionCount = new[]
@@ -135,4 +156,13 @@ namespace Cognify.Services
     }
 
     public sealed record IrtAbilityEstimate(double Theta, double StandardError);
+    public sealed record IrtItemReport(
+        int ItemNumber,
+        bool IsCorrect,
+        bool IsSkipped,
+        double Discrimination,
+        double Difficulty,
+        double Guessing,
+        double ProbabilityAtEstimate,
+        double FisherInformation);
 }

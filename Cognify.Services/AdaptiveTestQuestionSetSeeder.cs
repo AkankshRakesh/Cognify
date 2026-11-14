@@ -150,7 +150,21 @@ namespace Cognify.Services
                 .FirstOrDefaultAsync(set => set.Title == SetTitle);
             if (existingSet != null)
             {
-                if (!existingSet.IsBuiltIn)
+                var difficultyByText = QuestionSeeds.ToDictionary(seed => seed.Text, seed => seed.Difficulty);
+                var repaired = false;
+                foreach (var question in await context.Questions
+                    .Where(question => question.QuestionSetId == existingSet.QuestionSetId)
+                    .ToListAsync())
+                {
+                    if (difficultyByText.TryGetValue(question.Text, out var difficulty) &&
+                        question.DifficultyLevel != difficulty)
+                    {
+                        question.DifficultyLevel = difficulty;
+                        repaired = true;
+                    }
+                }
+
+                if (!existingSet.IsBuiltIn || repaired)
                 {
                     existingSet.IsBuiltIn = true;
                     await context.SaveChangesAsync();

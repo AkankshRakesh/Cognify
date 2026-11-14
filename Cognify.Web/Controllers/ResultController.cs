@@ -38,8 +38,6 @@ namespace Cognify.Web.Controllers
                 .Include(a => a.Exam)
                 .Include(a => a.Answers)
                     .ThenInclude(ans => ans.Question)
-                .Include(a => a.ConceptPerformances)
-                    .ThenInclude(cp => cp.ConceptTag)
                 .Where(a => a.UserId == userId);
 
             if (!string.IsNullOrWhiteSpace(attemptToken))
@@ -81,6 +79,61 @@ namespace Cognify.Web.Controllers
                         : negativeMarking ? -0.25 * marks : 0;
                 }))
                 : (double?)null;
+            var availableMarks = attempt.Answers.Sum(answer => answer.Question?.Marks ?? 0);
+            var correctMarks = attempt.Answers
+                .Where(answer => answer.IsCorrect)
+                .Sum(answer => answer.Question?.Marks ?? 0);
+            var negativeMarks = attempt.Answers
+                .Where(answer => !answer.IsCorrect && !string.IsNullOrWhiteSpace(answer.SelectedOption))
+                .Sum(answer => Math.Max(0, -(answer.MarksAwarded)));
+            var confidenceAdjustment = attempt.Answers
+                .Where(answer => answer.IsCorrect && answer.Question != null)
+                .Sum(answer => answer.MarksAwarded - answer.Question!.Marks);
+            var adaptiveItems = isAdaptive && abilityEstimate != null
+                ? attempt.Answers
+                    .Where(answer => answer.Question != null)
+                    .OrderBy(answer => answer.SequencePosition)
+                    .Select(answer => _irtService.GetItemReport(answer.Question!, answer, abilityEstimate.Theta))
+                    .Select(item => new IrtReportItemVM
+                    {
+                        ItemNumber = item.ItemNumber,
+                        IsCorrect = item.IsCorrect,
+                        IsSkipped = item.IsSkipped,
+                        Discrimination = item.Discrimination,
+                        Difficulty = item.Difficulty,
+                        Guessing = item.Guessing,
+                        ProbabilityAtEstimate = item.ProbabilityAtEstimate,
+                        FisherInformation = item.FisherInformation
+                    })
+                    .ToList()
+                : new List<IrtReportItemVM>();
+            var abilityProgression = isAdaptive
+                ? attempt.Answers
+                    .OrderBy(answer => answer.SequencePosition)
+                    .Select((answer, index) =>
+                    {
+                        var previousAnswers = attempt.Answers
+                            .Where(previous => previous.SequencePosition < answer.SequencePosition);
+                        var before = _irtService.EstimateAbility(previousAnswers);
+                        var after = _irtService.EstimateAbility(
+                            attempt.Answers.Where(current => current.SequencePosition <= answer.SequencePosition));
+                        var item = answer.Question == null
+                            ? null
+                            : _irtService.GetItemReport(answer.Question, answer, after.Theta);
+
+                        return new IrtAbilityProgressionVM
+                        {
+                            ResponseNumber = index + 1,
+                            IsCorrect = answer.IsCorrect,
+                            IsSkipped = string.IsNullOrWhiteSpace(answer.SelectedOption),
+                            ItemDifficulty = item?.Difficulty ?? 0,
+                            AbilityBefore = before.Theta,
+                            AbilityAfter = after.Theta,
+                            StandardErrorAfter = after.StandardError
+                        };
+                    })
+                    .ToList()
+                : new List<IrtAbilityProgressionVM>();
 
             var vm = new ResultSummaryVM
             {
@@ -100,11 +153,17 @@ namespace Cognify.Web.Controllers
                 HasCalibrationReport = attempt.OverconfidenceIndex.HasValue || attempt.UnderconfidenceIndex.HasValue,
                 OverconfidenceIndex = attempt.OverconfidenceIndex ?? 0,
                 UnderconfidenceIndex = attempt.UnderconfidenceIndex ?? 0,
-                ConceptMap = attempt.ConceptPerformances.Select(cp => new ConceptMapEntryVM
-                {
-                    ConceptName = cp.ConceptTag?.Name ?? "General",
-                    AccuracyPercent = Math.Round(cp.AccuracyPercent, 1)
-                }).ToList()
+                AvailableMarks = availableMarks,
+                CorrectMarks = correctMarks,
+                NegativeMarks = negativeMarks,
+                ConfidenceAdjustment = confidenceAdjustment,
+                IrtPriorMean = ThreeParameterIrtService.PriorMean,
+                IrtPriorStandardDeviation = ThreeParameterIrtService.PriorStandardDeviation,
+                IrtThetaMinimum = ThreeParameterIrtService.MinimumTheta,
+                IrtThetaMaximum = ThreeParameterIrtService.MaximumTheta,
+                IrtThetaStep = ThreeParameterIrtService.ThetaStep,
+                IrtItems = adaptiveItems,
+                IrtAbilityProgression = abilityProgression
             };
 
             return View(vm);

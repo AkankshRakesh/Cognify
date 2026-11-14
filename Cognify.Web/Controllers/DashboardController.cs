@@ -43,7 +43,6 @@ namespace Cognify.Web.Controllers
                 return RedirectToAction("Login", "Account");
 
             // Ensure catalog is seeded and accounts are initialized with initial data
-            await DbInitializer.InitializeAsync(_context);
             await DbInitializer.EnsureUserInitializedAsync(_context, userId);
 
             // Fetch user info from database

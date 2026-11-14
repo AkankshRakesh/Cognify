@@ -60,12 +60,39 @@ namespace Cognify.Web.ViewModels
         public bool HasCalibrationReport { get; set; }
         public double OverconfidenceIndex { get; set; }
         public double UnderconfidenceIndex { get; set; }
-        public List<ConceptMapEntryVM> ConceptMap { get; set; } = new();
+        public double AvailableMarks { get; set; }
+        public double CorrectMarks { get; set; }
+        public double NegativeMarks { get; set; }
+        public double ConfidenceAdjustment { get; set; }
+        public double IrtPriorMean { get; set; }
+        public double IrtPriorStandardDeviation { get; set; }
+        public double IrtThetaMinimum { get; set; }
+        public double IrtThetaMaximum { get; set; }
+        public double IrtThetaStep { get; set; }
+        public List<IrtReportItemVM> IrtItems { get; set; } = new();
+        public List<IrtAbilityProgressionVM> IrtAbilityProgression { get; set; } = new();
     }
 
-    public class ConceptMapEntryVM
+    public class IrtReportItemVM
     {
-        public string ConceptName { get; set; } = string.Empty;
-        public double AccuracyPercent { get; set; }
+        public int ItemNumber { get; set; }
+        public bool IsCorrect { get; set; }
+        public bool IsSkipped { get; set; }
+        public double Discrimination { get; set; }
+        public double Difficulty { get; set; }
+        public double Guessing { get; set; }
+        public double ProbabilityAtEstimate { get; set; }
+        public double FisherInformation { get; set; }
+    }
+
+    public class IrtAbilityProgressionVM
+    {
+        public int ResponseNumber { get; set; }
+        public bool IsCorrect { get; set; }
+        public bool IsSkipped { get; set; }
+        public double ItemDifficulty { get; set; }
+        public double AbilityBefore { get; set; }
+        public double AbilityAfter { get; set; }
+        public double StandardErrorAfter { get; set; }
     }
 }

@@ -1,0 +1,1 @@
+Server=tcp:cognfiy.database.windows.net,1433;Initial Catalog=cognify;Persist Security Info=False;User ID=CloudSA9cfc223c;Password=Akanksh#01;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;

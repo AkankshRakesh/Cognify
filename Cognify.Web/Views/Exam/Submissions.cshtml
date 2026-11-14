@@ -24,12 +24,6 @@
                     @Model.Submissions.Count submission@(Model.Submissions.Count == 1 ? "" : "s")
                 </p>
             </div>
-
-            <a asp-controller="Exam"
-               asp-action="Create"
-               class="btn btn-outline-warning btn-sm">
-                Create another exam
-            </a>
         </div>
 
         <div class="share-banner px mb-4">
@@ -145,7 +139,11 @@
                         <div class="submission-timing">
                             <strong>@submission.DurationText</strong>
                             <small>
-                                @((submission.SubmittedOn ?? submission.StartedOn).ToLocalTime().ToString("dd MMM, h:mm tt"))
+                                @(submission.SubmittedOn.HasValue
+                                ? DateTime.SpecifyKind(submission.SubmittedOn.Value, DateTimeKind.Utc)
+                                    .AddHours(5).AddMinutes(30)
+                                    .ToString("dd MMM, h:mm tt")
+                                : "—")
                             </small>
                         </div>
 
@@ -191,7 +189,7 @@
 
                                     <div>
                                         <span class="answer-number">
-                                            Q@answer.QuestionNumber
+                                             Q@(answer.QuestionNumber)
                                         </span>
 
                                         <strong>@answer.QuestionText</strong>
