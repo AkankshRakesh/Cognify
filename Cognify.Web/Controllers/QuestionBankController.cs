@@ -2,7 +2,6 @@ using System.Security.Claims;
 using Cognify.Core.Entities;
 using Cognify.Core.Enums;
 using Cognify.Data;
-using Cognify.Services;
 using Cognify.Web.ViewModels;
 using Cognify.Web.Security;
 using Microsoft.AspNetCore.Authorization;
@@ -30,8 +29,6 @@ namespace Cognify.Web.Controllers
             var userRole = User.FindFirstValue(ClaimTypes.Role);
             if (userRole != UserRole.Admin.ToString() && userRole != UserRole.Teacher.ToString())
                 return RedirectToAction("Index", "Dashboard");
-
-            await DbInitializer.InitializeAsync(_context);
 
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var sets = await _context.QuestionSets

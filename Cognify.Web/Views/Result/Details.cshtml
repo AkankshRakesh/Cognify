@@ -64,55 +64,156 @@
         </section>
 
         <div class="row g-4">
-            <!-- ===== CONCEPT MAP ===== -->
-            <div class="col-lg-7">
-                <h2 class="px-title">Concept Mastery Breakdown</h2>
-                <div class="px skills">
-                    @if (!Model.ConceptMap.Any())
-                    {
-                        <p class="muted m-0">No specific concept tags recorded for this assessment.</p>
-                    }
-                    @foreach (var c in Model.ConceptMap)
-                    {
-                        var on = (int)Math.Round(c.AccuracyPercent / 10.0);
-                        var tone = c.AccuracyPercent < 40 ? "low" : c.AccuracyPercent < 70 ? "mid" : "high";
-                        <div class="skill mb-3">
-                            <div class="skill-head">
-                                <span>@c.ConceptName</span>
-                                <span class="skill-pct">@c.AccuracyPercent%</span>
-                            </div>
-                            <div class="seg-bar seg-skill @tone" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@c.AccuracyPercent" aria-label="@c.ConceptName accuracy">
-                                @for (var i = 0; i < 10; i++)
-                                {
-                                    <span class="@(i < on ? "on" : "")"></span>
-                                }
-                            </div>
-                        </div>
-                    }
-                </div>
-            </div>
-
-            <!-- ===== DETAILS SIDEBAR ===== -->
-            <div class="col-lg-5">
-                <h2 class="px-title">Confidence Calibration</h2>
+            <div class="col-12">
+                <h2 class="px-title">How your score was generated</h2>
                 <div class="px">
-                    @if (Model.HasCalibrationReport)
+                    @if (Model.IsAdaptive)
                     {
-                        <div class="mb-3">
-                            <strong>Overconfidence Index: @Model.OverconfidenceIndex%</strong>
-                            <p class="small text-muted mt-1">Percentage of incorrect responses submitted with High confidence.</p>
+                        <p class="mb-2">
+                            Adaptive score = <strong>100 / (1 + e<sup>-&theta;</sup>)</strong>,
+                            bounded to 0-@Model.TotalMarks.
+                        </p>
+                        <p class="small text-muted">
+                            The Bayesian estimate uses a standard-normal prior and the 3PL response likelihood.
+                            Each item uses P(correct) = c + (1 - c) / (1 + e<sup>-a(&theta; - b)</sup>).
+                            Items were selected using maximum Fisher information.
+                        </p>
+                        <p class="small text-muted">
+                            Prior: &theta; ~ N(@Model.IrtPriorMean.ToString("0.##"), @Model.IrtPriorStandardDeviation.ToString("0.##")<sup>2</sup>).
+                            Estimation grid: @Model.IrtThetaMinimum.ToString("0.##") to @Model.IrtThetaMaximum.ToString("0.##"),
+                            step @Model.IrtThetaStep.ToString("0.##").
+                        </p>
+                        <div class="row g-3">
+                            <div class="col-md-3"><strong>Ability (&theta;)</strong><br />@Model.AbilityEstimate?.ToString("0.000")</div>
+                            <div class="col-md-3"><strong>Posterior SE</strong><br />@Model.AbilityStandardError?.ToString("0.000")</div>
+                            <div class="col-md-3"><strong>Scaled score</strong><br />@Model.TotalScore.ToString("0.##") / @Model.TotalMarks</div>
+                            <div class="col-md-3"><strong>Responses</strong><br />@Model.IrtItems.Count</div>
                         </div>
-                        <div class="mb-3">
-                            <strong>Underconfidence Index: @Model.UnderconfidenceIndex%</strong>
-                            <p class="small text-muted mt-1">Percentage of correct responses submitted with Low confidence.</p>
+                        <h3 class="h5 mt-4">Ability progression</h3>
+                        <p class="small text-muted">
+                            Each row shows the Bayesian ability estimate before and after that response.
+                            A correct response usually raises &theta;, an incorrect response usually lowers it,
+                            and a skipped response leaves the evidence unchanged.
+                        </p>
+                        <div class="table-responsive">
+                            <table class="table table-dark table-sm align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Response</th><th>Result</th><th>Item b</th>
+                                        <th>&theta;</th><th>Posterior SE</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                @foreach (var progression in Model.IrtAbilityProgression)
+                                {
+                                    <tr>
+                                        <td>@progression.ResponseNumber</td>
+                                        <td>@(progression.IsSkipped ? "Skipped" : progression.IsCorrect ? "Correct" : "Incorrect")</td>
+                                        <td>@progression.ItemDifficulty.ToString("0.000")</td>
+                                        <td>@progression.AbilityAfter.ToString("0.000")</td>
+                                        <td>@progression.StandardErrorAfter.ToString("0.000")</td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
                         </div>
                     }
                     else
                     {
-                        <p class="muted m-0">This exam did not have confidence-weighted scoring enabled.</p>
+                        <div class="row g-3">
+                            <div class="col-md-3"><strong>Available marks</strong><br />@Model.AvailableMarks.ToString("0.##")</div>
+                            <div class="col-md-3"><strong>Correct-answer marks</strong><br />@Model.CorrectMarks.ToString("0.##")</div>
+                            <div class="col-md-3"><strong>Negative marks</strong><br />@Model.NegativeMarks.ToString("0.##")</div>
+                            <div class="col-md-3"><strong>Confidence adjustment</strong><br />@Model.ConfidenceAdjustment.ToString("+0.##;-0.##;0")</div>
+                        </div>
+                        <p class="small text-muted mt-3 mb-0">
+                            Confidence changes the marks awarded per answered item, the same answer can reward higher marks if the student was confident and correct, or penalize marks if the student was confident and wrong.
+                        </p>
                     }
                 </div>
             </div>
+
+            
+            @if (!Model.IsAdaptive)
+            {
+                <div class="col-lg-5">
+                    <h2 class="px-title">Confidence Calibration</h2>
+                    <div class="px">
+                        @if (Model.HasCalibrationReport)
+                        {
+                            <div class="mb-3">
+                                <strong>Overconfidence Index: @Model.OverconfidenceIndex%</strong>
+                                <p class="small text-muted mt-1">
+                                    Percentage of incorrect responses submitted with High confidence.
+                                </p>
+                            </div>
+
+                            <div class="mb-3">
+                                <strong>Underconfidence Index: @Model.UnderconfidenceIndex%</strong>
+                                <p class="small text-muted mt-1">
+                                    Percentage of correct responses submitted with Low confidence.
+                                </p>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="muted m-0">
+                                This exam did not have confidence-weighted scoring enabled.
+                            </p>
+                        }
+                    </div>
+                </div>
+            }
+
+            @if (Model.IsAdaptive)
+            {
+                <section class="mt-4">
+                    <h2 class="px-title">Adaptive method and notation</h2>
+                    <div class="px small text-muted">
+                        <p>
+                            <strong>&theta; (theta)</strong> is the student's estimated ability. It starts with
+                            a standard-normal prior centered at @Model.IrtPriorMean.ToString("0.##") with standard
+                            deviation @Model.IrtPriorStandardDeviation.ToString("0.##"). Each response updates
+                            this estimate to a posterior distribution.
+                        </p>
+                        <p>
+                            For each item, the 3PL model calculates
+                            <strong>P(&theta;) = c + (1 - c) / (1 + e<sup>-a(&theta; - b)</sup>)</strong>.
+                            <strong>P(&theta;)</strong> is the modelled probability of a correct answer;
+                            <strong>a</strong> is discrimination; <strong>b</strong> is difficulty; and
+                            <strong>c</strong> is the chance-level guessing probability.
+                        </p>
+                        <p>
+                            In this exam, <strong>a = 1</strong>. Difficulty is represented by
+                            <strong>b = -1</strong> for Easy, <strong>b = 0</strong> for Medium, and
+                            <strong>b = 1</strong> for Hard. Guessing is
+                            <strong>c = 1 / number of answer options</strong>.
+                        </p>
+                        <p>
+                            The selector calculates Fisher information
+                            <strong>I(&theta;) = [P'(&theta;)]<sup>2</sup> /
+                            [P(&theta;) (1 - P(&theta;))]</strong> for every unanswered item and serves the
+                            item with the greatest information. Higher information means the item is expected
+                            to reduce uncertainty about ability more effectively.
+                        </p>
+                        <p>
+                            The posterior combines the prior and response likelihood:
+                            <strong>posterior &prop; prior &times; likelihood</strong>.
+                            For a correct answer the likelihood contribution is <strong>P(&theta;)</strong>;
+                            for an incorrect answer it is <strong>1 - P(&theta;)</strong>; skipped items add no
+                            response evidence. <strong>Posterior SE</strong> is the square root of the posterior
+                            variance and represents remaining uncertainty.
+                        </p>
+                        <p class="mb-0">
+                            Finally, ability is converted to the displayed score using
+                            <strong>100 / (1 + e<sup>-&theta;</sup>)</strong>, then bounded between zero and
+                            the exam maximum. The calculation uses a &theta; grid from
+                            @Model.IrtThetaMinimum.ToString("0.##") to @Model.IrtThetaMaximum.ToString("0.##")
+                            in steps of @Model.IrtThetaStep.ToString("0.##").
+                        </p>
+                    </div>
+                </section>
+            }
         </div>
     </div>
 </div>

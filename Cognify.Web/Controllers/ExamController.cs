@@ -2,7 +2,6 @@ using System.Security.Claims;
 using Cognify.Core.Entities;
 using Cognify.Core.Enums;
 using Cognify.Data;
-using Cognify.Services;
 using Cognify.Web.ViewModels;
 using Cognify.Web.Security;
 using Microsoft.AspNetCore.Authorization;
@@ -179,9 +178,6 @@ namespace Cognify.Web.Controllers
                 return RedirectToAction("Index", "Dashboard");
             }
 
-            // Ensure catalog is seeded if needed
-            await DbInitializer.InitializeAsync(_context);
-
             var vm = new ExamCreateVM
             {
                 StartTime = DateTime.Now,
@@ -236,6 +232,13 @@ namespace Cognify.Web.Controllers
                     ModelState.AddModelError(nameof(model.AdaptiveQuestionCount),
                         $"Choose no more than half of the set ({maximumAdaptiveQuestions} questions).");
                 }
+            }
+
+            if (model.Adaptive)
+            {
+                model.ShuffleQuestions = false;
+                model.NegativeMarking = false;
+                model.ConfidenceWeighted = false;
             }
 
             if (!ModelState.IsValid)

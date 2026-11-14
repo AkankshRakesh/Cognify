@@ -31,7 +31,7 @@ namespace Cognify.Services
             var confidence = answer.ConfidenceLevel ?? Core.Enums.ConfidenceLevel.Medium;
             var multiplier = Multipliers[(answer.IsCorrect, confidence)];
 
-            return Math.Round(question.Marks * multiplier, 2);
+            return Math.Min(question.Marks, Math.Round(question.Marks * multiplier, 2));
         }
     }
 }

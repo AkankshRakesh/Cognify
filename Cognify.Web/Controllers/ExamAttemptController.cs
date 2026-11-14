@@ -309,9 +309,12 @@ namespace Cognify.Web.Controllers
 
             // Calculate total score
             attempt.TotalScore = exam.UsesIrtAdaptive
-                ? Math.Round(_irtService.ToScaledScore(
-                    _irtService.EstimateAbility(attempt.Answers).Theta), 2)
-                : Math.Max(0, attempt.Answers.Sum(a => a.MarksAwarded));
+                ? Math.Clamp(Math.Round(_irtService.ToScaledScore(
+                    _irtService.EstimateAbility(attempt.Answers).Theta), 2), 0, exam.TotalMarks)
+                : Math.Clamp(
+                    Math.Round(attempt.Answers.Sum(a => a.MarksAwarded), 2),
+                    0,
+                    exam.TotalMarks);
 
             // Calibration metrics if confidence-weighted
             if (exam.IsConfidenceWeighted)

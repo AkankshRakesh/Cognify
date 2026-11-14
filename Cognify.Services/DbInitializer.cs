@@ -474,13 +474,7 @@ namespace Cognify.Services
 
             if (diagExam == null)
             {
-                // Ensure catalog is seeded first
-                await InitializeAsync(context);
-                diagExam = await context.Exams
-                    .Include(e => e.ExamQuestions)
-                    .ThenInclude(eq => eq.Question)
-                    .FirstOrDefaultAsync(e => e.Title.Contains("Diagnostic"));
-                if (diagExam == null) return;
+                return;
             }
 
             // Create initial baseline completed attempt
