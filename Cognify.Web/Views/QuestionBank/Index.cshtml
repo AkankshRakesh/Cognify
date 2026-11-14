@@ -30,23 +30,28 @@
         <section class="px px-hero">
 
             <div class="hero-main">
-                <p class="hero-hello">Teacher workspace</p>
+                <p class="hero-hello">
+                    @(User.IsInRole("Teacher") || User.IsInRole("Admin") ? "Teacher workspace" : "Shared resources")
+                </p>
                 <h1 class="hero-level">Question bank catalog</h1>
                 <p class="muted mb-0">
-                    Manage reusable question banks and use them as complete exam blueprints.
+                    Review shared sample question banks. Teachers can also manage their own banks.
                 </p>
             </div>
 
-            <a asp-action="CreateSet" class="px-btn">
-                + New question bank
-            </a>
+            @if (User.IsInRole("Teacher") || User.IsInRole("Admin"))
+            {
+                <a asp-action="CreateSet" class="px-btn">
+                    + New question bank
+                </a>
+            }
         </section>
 
         <div class="d-flex justify-content-between align-items-end mb-3">
             <div>
-                <h2 class="px-title mb-1">Your question banks</h2>
+                <h2 class="px-title mb-1">Question banks</h2>
                 <p class="muted mb-0">
-                    Open a bank to review, add, or remove questions.
+                    Use the shared sample bank for exams, or manage your own banks.
                 </p>
             </div>
 
@@ -77,6 +82,10 @@
                         </div>
 
                         <h2>@set.Title</h2>
+                        @if (set.IsBuiltIn)
+                        {
+                            <p class="muted small">Built-in sample · Read-only</p>
+                        }
 
                         @if (!string.IsNullOrWhiteSpace(set.Description))
                         {

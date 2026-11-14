@@ -26,6 +26,7 @@ namespace Cognify.Web.ViewModels
         public DateTime? SubmittedOn { get; set; }
         public double Score { get; set; }
         public int TotalMarks { get; set; }
+        public bool IsAdaptive { get; set; }
         public int CorrectCount { get; set; }
         public int WrongCount { get; set; }
         public int SkippedCount { get; set; }

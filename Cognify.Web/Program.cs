@@ -44,6 +44,7 @@ builder.Services.AddScoped<ConfidenceWeightedScoringService>();
 builder.Services.AddScoped<FixedPoolSelectionService>();
 builder.Services.AddScoped<AdaptiveSelectionService>();
 builder.Services.AddScoped<IAdaptiveEngine, AdaptiveDifficultyEngine>();
+builder.Services.AddScoped<ThreeParameterIrtService>();
 builder.Services.AddScoped<IConceptAnalyzer, ConceptMapGenerator>();
 builder.Services.AddScoped<ExamTimerService>();
 builder.Services.AddScoped<ScoringServiceFactory>();

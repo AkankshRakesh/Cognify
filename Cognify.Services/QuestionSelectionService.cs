@@ -14,13 +14,15 @@ namespace Cognify.Services
 
         public async Task<Question?> GetFirstQuestionAsync(ExamAttempt attempt)
         {
-            var exam = await _examRepository.GetByIdAsync(attempt.ExamId);
+            if (!attempt.ExamId.HasValue) return null;
+            var exam = await _examRepository.GetByIdAsync(attempt.ExamId.Value);
             return exam?.ExamQuestions.OrderBy(eq => eq.SequenceOrder).FirstOrDefault()?.Question;
         }
 
         public async Task<Question?> GetNextQuestionAsync(ExamAttempt attempt, AttemptAnswer lastAnswer)
         {
-            var exam = await _examRepository.GetByIdAsync(attempt.ExamId);
+            if (!attempt.ExamId.HasValue) return null;
+            var exam = await _examRepository.GetByIdAsync(attempt.ExamId.Value);
             if (exam == null) return null;
 
             var ordered = exam.ExamQuestions.OrderBy(eq => eq.SequenceOrder).ToList();
@@ -31,39 +33,66 @@ namespace Cognify.Services
         }
     }
 
-    // Used when Exam.ScoringMode includes Adaptive: delegates difficulty
-    // decisions to IAdaptiveEngine and draws from ExamQuestionPool per concept.
+    // New adaptive exams use 3PL maximum-information selection from their set;
+    // older adaptive exams without a configured length retain the legacy pool path.
     public class AdaptiveSelectionService : IQuestionSelectionService
     {
         private readonly IAdaptiveEngine _adaptiveEngine;
         private readonly ExamRepository _examRepository;
+        private readonly ThreeParameterIrtService _irtService;
 
-        public AdaptiveSelectionService(IAdaptiveEngine adaptiveEngine, ExamRepository examRepository)
+        public AdaptiveSelectionService(
+            IAdaptiveEngine adaptiveEngine,
+            ExamRepository examRepository,
+            ThreeParameterIrtService irtService)
         {
             _adaptiveEngine = adaptiveEngine;
             _examRepository = examRepository;
+            _irtService = irtService;
         }
 
         public async Task<Question?> GetFirstQuestionAsync(ExamAttempt attempt)
         {
-            var exam = await _examRepository.GetByIdAsync(attempt.ExamId);
+            if (!attempt.ExamId.HasValue) return null;
+            var examId = attempt.ExamId.Value;
+            var exam = await _examRepository.GetByIdAsync(examId);
+
+            if (exam is { AdaptiveQuestionCount: > 0, QuestionSet: not null })
+            {
+                return _irtService.SelectNextQuestion(
+                    exam.QuestionSet.Questions,
+                    attempt.Answers,
+                    attempt.AttemptId);
+            }
+
             var firstConcept = exam?.QuestionPools.FirstOrDefault();
             if (firstConcept == null) return null;
 
             // Every student starts at Medium difficulty for the first concept
             return await _adaptiveEngine.GetNextQuestionAsync(
-                attempt.ExamId, firstConcept.ConceptTagId, DifficultyLevel.Medium, Enumerable.Empty<int>());
+                examId, firstConcept.ConceptTagId, DifficultyLevel.Medium, Enumerable.Empty<int>());
         }
 
         public async Task<Question?> GetNextQuestionAsync(ExamAttempt attempt, AttemptAnswer lastAnswer)
         {
+            if (!attempt.ExamId.HasValue) return null;
+            var examId = attempt.ExamId.Value;
+            var exam = await _examRepository.GetByIdAsync(examId);
+            if (exam is { AdaptiveQuestionCount: > 0, QuestionSet: not null })
+            {
+                return _irtService.SelectNextQuestion(
+                    exam.QuestionSet.Questions,
+                    attempt.Answers,
+                    attempt.AttemptId);
+            }
+
             if (lastAnswer.Question == null) return null;
 
             var nextDifficulty = _adaptiveEngine.GetNextDifficulty(lastAnswer.DifficultyAtServeTime, lastAnswer.IsCorrect);
             var seenIds = attempt.Answers.Select(a => a.QuestionId).ToList();
 
             return await _adaptiveEngine.GetNextQuestionAsync(
-                attempt.ExamId, lastAnswer.Question.ConceptTagId, nextDifficulty, seenIds);
+                examId, lastAnswer.Question.ConceptTagId, nextDifficulty, seenIds);
         }
     }
 }

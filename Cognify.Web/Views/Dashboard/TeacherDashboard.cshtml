@@ -61,7 +61,7 @@
             @foreach (var set in Model.QuestionSets)
             {
                 <div class="col-md-6 col-xl-4">
-                    <a asp-action="EditSet"
+                    <a asp-controller="QuestionBank" asp-action="EditSet"
                        asp-route-token="@UrlTokens.ProtectQuestionSet(set.QuestionSetId)"
                        class="question-bank-card px d-block h-100">
 
@@ -71,6 +71,10 @@
                         </div>
 
                         <h2>@set.Title</h2>
+                        @if (set.IsBuiltIn)
+                        {
+                            <p class="muted small">Built-in sample · Read-only</p>
+                        }
 
                         @if (!string.IsNullOrWhiteSpace(set.Description))
                         {
@@ -141,7 +145,8 @@
                         @exam.QuestionCount questions ·
                         @exam.DurationMinutes minutes ·
                         @exam.TotalMarks marks ·
-                        @exam.AttemptsCount submissions
+                        @exam.AttemptsCount submissions ·
+                        @(exam.IsPublic ? "Public" : "Private")
                     </p>
 
                     <div class="exam-actions mt-3">
@@ -188,7 +193,7 @@
             </article>
 
             <div class="modal fade" id="deleteExamModal_@exam.ExamId" tabindex="-1" aria-labelledby="deleteExamLabel_@exam.ExamId" aria-hidden="true" data-bs-backdrop="false">
-                <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-dialog modal-dialog-centered responsive-modal-dialog">
                     <div class="modal-content question-set-modal">
                         <div class="modal-header">
                             <h5 class="modal-title" id="deleteExamLabel_@exam.ExamId">Delete exam?</h5>

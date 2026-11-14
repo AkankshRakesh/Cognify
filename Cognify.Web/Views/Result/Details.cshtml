@@ -26,8 +26,28 @@
             <div class="px px-stat t-amber">
                 <span class="stat-label">Final Score</span>
                 <span class="stat-num">@Model.TotalScore.ToString("0.#")<small>/@Model.TotalMarks</small></span>
-                <span class="stat-hint">Score: @percentage%</span>
+                @if (Model.IsAdaptive)
+                {
+                    <span class="stat-hint">Bayesian 3PL score · ability θ @Model.AbilityEstimate?.ToString("0.00")</span>
+                }
+                else
+                {
+                    <span class="stat-hint">Score: @percentage%</span>
+                }
             </div>
+            @if (Model.IsAdaptive)
+            {
+                <div class="px px-stat t-coral">
+                    <span class="stat-label">Estimated ability</span>
+                    <span class="stat-num">@Model.AbilityEstimate?.ToString("0.00")</span>
+                    <span class="stat-hint">Posterior standard error ±@Model.AbilityStandardError?.ToString("0.00")</span>
+                </div>
+                <div class="px px-stat t-teal">
+                    <span class="stat-label">Conventional marks</span>
+                    <span class="stat-num">@Model.ConventionalScore?.ToString("0.#")<small>/@Model.ConventionalTotalMarks</small></span>
+                    <span class="stat-hint">Secondary raw-mark score for answered items</span>
+                </div>
+            }
             <div class="px px-stat t-teal">
                 <span class="stat-label">Correct Answers</span>
                 <span class="stat-num">@Model.CorrectCount</span>
@@ -92,13 +112,7 @@
                         <p class="muted m-0">This exam did not have confidence-weighted scoring enabled.</p>
                     }
                 </div>
-
-                <div class="px mt-3 text-center">
-                    <p class="muted mb-3">Ready to attempt your next challenge?</p>
-                    <a asp-controller="Dashboard" asp-action="Index" class="px-btn d-inline-block">Return to Active Quests</a>
-                </div>
             </div>
         </div>
-
     </div>
 </div>

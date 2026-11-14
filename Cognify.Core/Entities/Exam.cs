@@ -9,6 +9,7 @@ namespace Cognify.Core.Entities
         public string? Description { get; set; }
         public int CreatedByUserId { get; set; }
         public User? CreatedBy { get; set; }
+        public bool IsPublic { get; set; } = true;
 
         public int DurationMinutes { get; set; }
         public DateTime StartTime { get; set; }
@@ -20,6 +21,7 @@ namespace Cognify.Core.Entities
 
         public bool NegativeMarking { get; set; }
         public bool ShuffleQuestions { get; set; } = true;
+        public int AdaptiveQuestionCount { get; set; }
 
         // The unique feature toggle set by the quiz maker
         public ScoringMode ScoringMode { get; set; } = ScoringMode.Standard;
@@ -30,5 +32,6 @@ namespace Cognify.Core.Entities
 
         public bool IsAdaptive => ScoringMode.HasFlag(ScoringMode.Adaptive);
         public bool IsConfidenceWeighted => ScoringMode.HasFlag(ScoringMode.ConfidenceWeighted);
+        public bool UsesIrtAdaptive => IsAdaptive && AdaptiveQuestionCount > 0;
     }
 }

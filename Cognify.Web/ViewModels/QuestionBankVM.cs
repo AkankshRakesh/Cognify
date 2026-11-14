@@ -25,6 +25,7 @@ namespace Cognify.Web.ViewModels
         public int QuestionCount { get; set; }
         public int TotalMarks { get; set; }
         public DateTime CreatedOn { get; set; }
+        public bool IsBuiltIn { get; set; }
     }
 
     public class QuestionItemVM

@@ -23,6 +23,19 @@ namespace Cognify.Web.Controllers
             _urlTokens = urlTokens;
         }
 
+        private async Task<QuestionSet?> GetAccessibleSetAsync(int id)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var role = User.FindFirstValue(ClaimTypes.Role);
+            var canViewBuiltIn = role == UserRole.Teacher.ToString() || role == UserRole.Admin.ToString();
+
+            return await _context.QuestionSets
+                .Include(s => s.Questions)
+                .FirstOrDefaultAsync(s => s.QuestionSetId == id &&
+                    ((s.IsBuiltIn && canViewBuiltIn) ||
+                     (!s.IsBuiltIn && (role == UserRole.Admin.ToString() || s.CreatedByUserId == userId))));
+        }
+
         public async Task<IActionResult> Index()
         {
             var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -57,12 +70,13 @@ namespace Cognify.Web.Controllers
                     .ThenInclude(eq => eq.Question)
                 .Include(e => e.QuestionPools)
                     .ThenInclude(qp => qp.ConceptTag)
+                .Include(e => e.QuestionSet)
                 .Where(e => user.Role == UserRole.Admin || e.CreatedByUserId == user.UserId)
                 .OrderByDescending(e => e.StartTime)
                 .ToListAsync();
 
             var questionSets = await _context.QuestionSets
-                .Where(s => user.Role == UserRole.Admin || s.CreatedByUserId == user.UserId)
+                .Where(s => s.IsBuiltIn || user.Role == UserRole.Admin || s.CreatedByUserId == user.UserId)
                 .Include(s => s.Questions)
                 .OrderByDescending(s => s.CreatedOn)
                 .ToListAsync();
@@ -73,7 +87,8 @@ namespace Cognify.Web.Controllers
             var attempts = await _context.ExamAttempts
                 .Include(a => a.User)
                 .Include(a => a.Exam)
-                .Where(a => examIds.Contains(a.ExamId) && (a.Status == AttemptStatus.Submitted || a.Status == AttemptStatus.AutoSubmitted))
+                .Where(a => a.ExamId.HasValue && examIds.Contains(a.ExamId.Value) &&
+                    (a.Status == AttemptStatus.Submitted || a.Status == AttemptStatus.AutoSubmitted))
                 .OrderByDescending(a => a.SubmitTime ?? a.StartTime)
                 .ToListAsync();
 
@@ -108,11 +123,12 @@ namespace Cognify.Web.Controllers
                               ?? "General",
                     DurationMinutes = e.DurationMinutes,
                     TotalMarks = e.TotalMarks,
-                    QuestionCount = e.ExamQuestions.Count,
+                    QuestionCount = e.UsesIrtAdaptive ? e.AdaptiveQuestionCount : e.ExamQuestions.Count,
                     StartTime = e.StartTime,
                     EndTime = e.EndTime,
                     IsAdaptive = e.IsAdaptive,
                     IsConfidenceWeighted = e.IsConfidenceWeighted,
+                    IsPublic = e.IsPublic,
                     AttemptsCount = examAttempts.Count,
                     AverageScore = examAvg,
                     ShareUrl = Url.Action("Start", "ExamAttempt", new { token = _urlTokens.ProtectExam(e.ExamId) }, Request.Scheme) ?? string.Empty
@@ -124,12 +140,12 @@ namespace Cognify.Web.Controllers
             {
                 AttemptId = a.AttemptId,
                 AttemptToken = _urlTokens.ProtectAttempt(a.AttemptId),
-                ExamId = a.ExamId,
-                ExamToken = _urlTokens.ProtectExam(a.ExamId),
+                ExamId = a.ExamId ?? 0,
+                ExamToken = a.ExamId.HasValue ? _urlTokens.ProtectExam(a.ExamId.Value) : string.Empty,
                 StudentName = a.User?.Name ?? "Student",
-                ExamTitle = a.Exam?.Title ?? "Exam",
+                ExamTitle = a.Exam?.Title ?? a.ExamTitleSnapshot ?? "Exam",
                 Score = Math.Round(a.TotalScore, 1),
-                TotalMarks = a.Exam?.TotalMarks ?? 100,
+                TotalMarks = a.Exam?.TotalMarks ?? a.ExamTotalMarksSnapshot ?? 100,
                 SubmittedOn = a.SubmitTime ?? a.StartTime,
                 CalibrationScore = a.OverconfidenceIndex.HasValue && a.UnderconfidenceIndex.HasValue
                     ? Math.Round(Math.Max(0, 100.0 - ((a.OverconfidenceIndex.Value + a.UnderconfidenceIndex.Value) / 2.0)), 1)
@@ -185,7 +201,8 @@ namespace Cognify.Web.Controllers
                     Subject = s.Subject,
                     QuestionCount = s.Questions.Count,
                     TotalMarks = s.Questions.Sum(q => q.Marks),
-                    CreatedOn = s.CreatedOn
+                    CreatedOn = s.CreatedOn,
+                    IsBuiltIn = s.IsBuiltIn
                 }).ToList(),
                 TotalExamsCreated = totalExams,
                 ActiveExamsCount = activeExams,
@@ -206,6 +223,7 @@ namespace Cognify.Web.Controllers
             return await _context.QuestionSets
                 .Include(s => s.Questions)
                 .FirstOrDefaultAsync(s => s.QuestionSetId == id &&
+                    !s.IsBuiltIn &&
                     (role == UserRole.Admin.ToString() || s.CreatedByUserId == userId));
         }
         
@@ -221,8 +239,30 @@ namespace Cognify.Web.Controllers
         public async Task<IActionResult> EditSet(string token)
         {
             if (!_urlTokens.TryUnprotectQuestionSet(token, out var id)) return BadRequest("Invalid question bank link.");
-            var set = await GetManageableSetAsync(id);
+            var set = await GetAccessibleSetAsync(id);
             if (set == null) return RedirectToAction(nameof(Index));
+
+            if (set.IsBuiltIn)
+            {
+                return View("~/Views/QuestionBank/ReadOnlySet.cshtml", new QuestionSetCreateVM
+                {
+                    Title = set.Title,
+                    Description = set.Description,
+                    Subject = set.Subject,
+                    Questions = set.Questions.OrderBy(q => q.QuestionId).Select(q => new QuestionInputVM
+                    {
+                        QuestionId = q.QuestionId,
+                        Text = q.Text,
+                        OptionA = q.OptionA,
+                        OptionB = q.OptionB,
+                        OptionC = q.OptionC,
+                        OptionD = q.OptionD,
+                        CorrectOption = q.CorrectOption,
+                        DifficultyLevel = q.DifficultyLevel,
+                        Marks = q.Marks
+                    }).ToList()
+                });
+            }
 
             await PopulateCreateSetViewAsync();
             ViewBag.QuestionSetToken = _urlTokens.ProtectQuestionSet(set.QuestionSetId);
@@ -264,7 +304,11 @@ namespace Cognify.Web.Controllers
             var examsTaken = attempts.Count;
 
             var averageScore = attempts.Any()
-                ? Math.Round(attempts.Average(a => a.Exam != null && a.Exam.TotalMarks > 0 ? (a.TotalScore / a.Exam.TotalMarks) * 100.0 : 0.0), 0)
+                ? Math.Round(attempts.Average(a =>
+                {
+                    var totalMarks = a.Exam?.TotalMarks ?? a.ExamTotalMarksSnapshot ?? 0;
+                    return totalMarks > 0 ? (a.TotalScore / totalMarks) * 100.0 : 0.0;
+                }), 0)
                 : 0.0;
 
             var calibAttempts = attempts.Where(a => a.OverconfidenceIndex.HasValue && a.UnderconfidenceIndex.HasValue).ToList();
@@ -307,8 +351,9 @@ namespace Cognify.Web.Controllers
             int totalXp = 50; // Starting baseline XP
             foreach (var att in attempts)
             {
-                double marksPercent = att.Exam != null && att.Exam.TotalMarks > 0
-                    ? (att.TotalScore / att.Exam.TotalMarks)
+                var totalMarks = att.Exam?.TotalMarks ?? att.ExamTotalMarksSnapshot ?? 0;
+                double marksPercent = totalMarks > 0
+                    ? (att.TotalScore / totalMarks)
                     : 0.5;
                 totalXp += (int)Math.Round(marksPercent * 50.0) + 20;
             }
@@ -318,13 +363,17 @@ namespace Cognify.Web.Controllers
             int xpToNext = 100;
 
             // Fetch upcoming / active exams from database
-            var completedExamIds = attempts.Select(a => a.ExamId).ToHashSet();
+            var completedExamIds = attempts
+                .Where(a => a.ExamId.HasValue)
+                .Select(a => a.ExamId!.Value)
+                .ToHashSet();
             var upcomingEntities = await _context.Exams
                 .Include(e => e.ExamQuestions)
                     .ThenInclude(eq => eq.Question)
                 .Include(e => e.QuestionPools)
                     .ThenInclude(qp => qp.ConceptTag)
-                .Where(e => e.EndTime > DateTime.UtcNow && !completedExamIds.Contains(e.ExamId))
+                .Include(e => e.QuestionSet)
+                .Where(e => e.IsPublic && e.EndTime > DateTime.UtcNow && !completedExamIds.Contains(e.ExamId))
                 .OrderBy(e => e.StartTime)
                 .ToListAsync();
 
@@ -333,7 +382,8 @@ namespace Cognify.Web.Controllers
                 ExamId = e.ExamId,
                 ExamToken = _urlTokens.ProtectExam(e.ExamId),
                 Title = e.Title,
-                Subject = e.ExamQuestions.Select(eq => eq.Question?.Subject).FirstOrDefault(s => !string.IsNullOrEmpty(s))
+                Subject = e.QuestionSet?.Subject
+                          ?? e.ExamQuestions.Select(eq => eq.Question?.Subject).FirstOrDefault(s => !string.IsNullOrEmpty(s))
                           ?? e.QuestionPools.Select(qp => qp.ConceptTag?.Subject).FirstOrDefault(s => !string.IsNullOrEmpty(s))
                           ?? "General",
                 StartTime = e.StartTime,
@@ -348,12 +398,12 @@ namespace Cognify.Web.Controllers
             {
                 AttemptId = a.AttemptId,
                 AttemptToken = _urlTokens.ProtectAttempt(a.AttemptId),
-                ExamId = a.ExamId,
-                ExamToken = _urlTokens.ProtectExam(a.ExamId),
-                Title = a.Exam?.Title ?? "Exam",
+                ExamId = a.ExamId ?? 0,
+                ExamToken = a.ExamId.HasValue ? _urlTokens.ProtectExam(a.ExamId.Value) : string.Empty,
+                Title = a.Exam?.Title ?? a.ExamTitleSnapshot ?? "Exam",
                 SubmittedOn = a.SubmitTime ?? a.StartTime,
                 Score = (int)Math.Round(a.TotalScore),
-                TotalMarks = a.Exam?.TotalMarks ?? 100
+                TotalMarks = a.Exam?.TotalMarks ?? a.ExamTotalMarksSnapshot ?? 100
             }).ToList();
 
             // Real concept mastery aggregated from database ConceptPerformances
@@ -392,7 +442,11 @@ namespace Cognify.Web.Controllers
                     Name = "Sharp Mind",
                     Hint = "Score 85%+ on any exam",
                     Glyph = "◆",
-                    Unlocked = attempts.Any(a => a.Exam != null && a.Exam.TotalMarks > 0 && (a.TotalScore / a.Exam.TotalMarks) >= 0.85)
+                    Unlocked = attempts.Any(a =>
+                    {
+                        var totalMarks = a.Exam?.TotalMarks ?? a.ExamTotalMarksSnapshot ?? 0;
+                        return totalMarks > 0 && (a.TotalScore / totalMarks) >= 0.85;
+                    })
                 },
                 new()
                 {
@@ -406,7 +460,8 @@ namespace Cognify.Web.Controllers
                     Name = "Calibrated",
                     Hint = "Achieve 80%+ calibration score",
                     Glyph = "◈",
-                    Unlocked = calibrationScore >= 80 && attempts.Any(a => a.Exam != null && a.Exam.IsConfidenceWeighted)
+                    Unlocked = calibrationScore >= 80 &&
+                        attempts.Any(a => a.Exam?.IsConfidenceWeighted ?? a.IsConfidenceWeightedSnapshot ?? false)
                 },
                 new()
                 {

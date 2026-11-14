@@ -27,12 +27,15 @@ namespace Cognify.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
+            var userRole = User.FindFirstValue(ClaimTypes.Role);
+            if (userRole != UserRole.Admin.ToString() && userRole != UserRole.Teacher.ToString())
+                return RedirectToAction("Index", "Dashboard");
+
             await DbInitializer.InitializeAsync(_context);
 
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            var userRole = User.FindFirstValue(ClaimTypes.Role);
             var sets = await _context.QuestionSets
-                .Where(s => userRole == UserRole.Admin.ToString() || s.CreatedByUserId == userId)
+                .Where(s => s.IsBuiltIn || userRole == UserRole.Admin.ToString() || s.CreatedByUserId == userId)
                 .Include(s => s.Questions)
                 .OrderByDescending(s => s.CreatedOn)
                 .ToListAsync();
@@ -47,7 +50,8 @@ namespace Cognify.Web.Controllers
                     Subject = s.Subject,
                     QuestionCount = s.Questions.Count,
                     TotalMarks = s.Questions.Sum(q => q.Marks),
-                    CreatedOn = s.CreatedOn
+                    CreatedOn = s.CreatedOn,
+                    IsBuiltIn = s.IsBuiltIn
                 }).ToList()
             };
 
@@ -58,8 +62,30 @@ namespace Cognify.Web.Controllers
         public async Task<IActionResult> EditSet(string token)
         {
             if (!_urlTokens.TryUnprotectQuestionSet(token, out var id)) return BadRequest("Invalid question bank link.");
-            var set = await GetManageableSetAsync(id);
+            var set = await GetAccessibleSetAsync(id);
             if (set == null) return RedirectToAction(nameof(Index));
+
+            if (set.IsBuiltIn)
+            {
+                return View("~/Views/QuestionBank/ReadOnlySet.cshtml", new QuestionSetCreateVM
+                {
+                    Title = set.Title,
+                    Description = set.Description,
+                    Subject = set.Subject,
+                    Questions = set.Questions.OrderBy(q => q.QuestionId).Select(q => new QuestionInputVM
+                    {
+                        QuestionId = q.QuestionId,
+                        Text = q.Text,
+                        OptionA = q.OptionA,
+                        OptionB = q.OptionB,
+                        OptionC = q.OptionC,
+                        OptionD = q.OptionD,
+                        CorrectOption = q.CorrectOption,
+                        DifficultyLevel = q.DifficultyLevel,
+                        Marks = q.Marks
+                    }).ToList()
+                });
+            }
 
             await PopulateCreateSetViewAsync();
             ViewBag.QuestionSetToken = _urlTokens.ProtectQuestionSet(set.QuestionSetId);
@@ -291,7 +317,21 @@ namespace Cognify.Web.Controllers
             return await _context.QuestionSets
                 .Include(s => s.Questions)
                 .FirstOrDefaultAsync(s => s.QuestionSetId == id &&
+                    !s.IsBuiltIn &&
                     (role == UserRole.Admin.ToString() || s.CreatedByUserId == userId));
+        }
+
+        private async Task<QuestionSet?> GetAccessibleSetAsync(int id)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var role = User.FindFirstValue(ClaimTypes.Role);
+            var canViewBuiltIn = role == UserRole.Teacher.ToString() || role == UserRole.Admin.ToString();
+
+            return await _context.QuestionSets
+                .Include(s => s.Questions)
+                .FirstOrDefaultAsync(s => s.QuestionSetId == id &&
+                    ((s.IsBuiltIn && canViewBuiltIn) ||
+                     (!s.IsBuiltIn && (role == UserRole.Admin.ToString() || s.CreatedByUserId == userId))));
         }
 
         private static void UpdateQuestion(Question question, QuestionInputVM input)

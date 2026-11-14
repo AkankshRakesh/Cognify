@@ -176,31 +176,43 @@
                         <div class="row g-2 mb-3">
 
                             <div class="col-md-6">
-                                <input name="Questions[0].OptionA"
-                                       class="form-control-dark"
-                                       required
-                                       placeholder="Option A">
+                                <div class="option-row">
+                                    <span class="option-bubble" data-option="A">A</span>
+                                    <input name="Questions[0].OptionA"
+                                        class="form-control-dark"
+                                        required
+                                        placeholder="Option A">
+                                </div>
                             </div>
 
                             <div class="col-md-6">
-                                <input name="Questions[0].OptionB"
-                                       class="form-control-dark"
-                                       required
-                                       placeholder="Option B">
+                                <div class="option-row">
+                                    <span class="option-bubble" data-option="B">B</span>
+                                    <input name="Questions[0].OptionB"
+                                        class="form-control-dark"
+                                        required
+                                        placeholder="Option B">
+                                </div>
                             </div>
 
                             <div class="col-md-6">
-                                <input name="Questions[0].OptionC"
-                                       class="form-control-dark"
-                                       required
-                                       placeholder="Option C">
+                                <div class="option-row">
+                                    <span class="option-bubble" data-option="C">C</span>
+                                    <input name="Questions[0].OptionC"
+                                        class="form-control-dark"
+                                        required
+                                        placeholder="Option C">
+                                </div>
                             </div>
 
                             <div class="col-md-6">
-                                <input name="Questions[0].OptionD"
-                                       class="form-control-dark"
-                                       required
-                                       placeholder="Option D">
+                                <div class="option-row">
+                                    <span class="option-bubble" data-option="D">D</span>
+                                    <input name="Questions[0].OptionD"
+                                        class="form-control-dark"
+                                        required
+                                        placeholder="Option D">
+                                </div>
                             </div>
 
                         </div>
@@ -313,31 +325,43 @@
                     <div class="row g-2 mb-3">
 
                         <div class="col-md-6">
-                            <input name="Questions[${i}].OptionA"
-                                   class="form-control-dark"
-                                   required
-                                   placeholder="Option A">
+                            <div class="option-row">
+                                <span class="option-bubble" data-option="A">A</span>
+                                <input name="Questions[${i}].OptionA"
+                                    class="form-control-dark"
+                                    required
+                                    placeholder="Option A">
+                            </div>
                         </div>
 
                         <div class="col-md-6">
-                            <input name="Questions[${i}].OptionB"
-                                   class="form-control-dark"
-                                   required
-                                   placeholder="Option B">
+                            <div class="option-row">
+                                <span class="option-bubble" data-option="B">B</span>
+                                <input name="Questions[${i}].OptionB"
+                                    class="form-control-dark"
+                                    required
+                                    placeholder="Option B">
+                            </div>
                         </div>
 
                         <div class="col-md-6">
-                            <input name="Questions[${i}].OptionC"
-                                   class="form-control-dark"
-                                   required
-                                   placeholder="Option C">
+                            <div class="option-row">
+                                <span class="option-bubble" data-option="C">C</span>
+                                <input name="Questions[${i}].OptionC"
+                                    class="form-control-dark"
+                                    required
+                                    placeholder="Option C">
+                            </div>
                         </div>
 
                         <div class="col-md-6">
-                            <input name="Questions[${i}].OptionD"
-                                   class="form-control-dark"
-                                   required
-                                   placeholder="Option D">
+                            <div class="option-row">
+                                <span class="option-bubble" data-option="D">D</span>
+                                <input name="Questions[${i}].OptionD"
+                                    class="form-control-dark"
+                                    required
+                                    placeholder="Option D">
+                            </div>
                         </div>
 
                     </div>
@@ -386,6 +410,13 @@
                 </div>
             `;
 
+            function syncCorrect(card) {
+                const select = card.querySelector('select[name$=".CorrectOption"]');
+                card.querySelectorAll('.option-bubble').forEach(b =>
+                    b.classList.toggle('correct', b.dataset.option === select.value)
+                );
+            }
+
             function update() {
                 const items = list.querySelectorAll('.question-editor-card');
 
@@ -400,6 +431,8 @@
                         'd-none',
                         items.length === 1
                     );
+                    
+                    syncCorrect(item);
                 });
             }
 
@@ -415,6 +448,11 @@
                 ) {
                     event.target.closest('.question-editor-card').remove();
                     update();
+                }
+            });
+            list.addEventListener('change', event => {
+                if (event.target.name && event.target.name.endsWith('.CorrectOption')) {
+                    syncCorrect(event.target.closest('.question-editor-card'));
                 }
             });
         })();

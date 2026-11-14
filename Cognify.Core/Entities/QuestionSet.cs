@@ -9,6 +9,7 @@ namespace Cognify.Core.Entities
         public int CreatedByUserId { get; set; }
         public User? CreatedBy { get; set; }
         public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+        public bool IsBuiltIn { get; set; }
 
         public ICollection<Question> Questions { get; set; } = new List<Question>();
         public ICollection<Exam> Exams { get; set; } = new List<Exam>();

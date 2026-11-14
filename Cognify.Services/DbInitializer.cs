@@ -11,6 +11,8 @@ namespace Cognify.Services
         {
             await context.Database.EnsureCreatedAsync();
             await EnsureQuestionSetSchemaAsync(context);
+            await EnsureAdaptiveExamSchemaAsync(context);
+            await EnsureAttemptReportSchemaAsync(context);
 
             // 1. Seed Concept Tags
             if (!await context.ConceptTags.AnyAsync())
@@ -336,6 +338,8 @@ namespace Cognify.Services
             {
                 await EnsureUserInitializedAsync(context, user.UserId);
             }
+
+            await AdaptiveTestQuestionSetSeeder.SeedAsync(context);
         }
 
         private static async Task EnsureQuestionSetSchemaAsync(AppDbContext context)
@@ -353,9 +357,14 @@ namespace Cognify.Services
                         [Subject] nvarchar(max) NOT NULL,
                         [CreatedByUserId] int NOT NULL,
                         [CreatedOn] datetime2 NOT NULL,
+                        [IsBuiltIn] bit NOT NULL CONSTRAINT [DF_QuestionSets_IsBuiltIn] DEFAULT 0,
                         CONSTRAINT [PK_QuestionSets] PRIMARY KEY ([QuestionSetId])
                     );
                 END;
+
+                IF COL_LENGTH(N'QuestionSets', N'IsBuiltIn') IS NULL
+                    ALTER TABLE [QuestionSets] ADD [IsBuiltIn] bit NOT NULL
+                        CONSTRAINT [DF_QuestionSets_IsBuiltIn] DEFAULT 0;
 
                 IF COL_LENGTH(N'Questions', N'QuestionSetId') IS NULL
                     ALTER TABLE [Questions] ADD [QuestionSetId] int NULL;
@@ -374,6 +383,75 @@ namespace Cognify.Services
                 IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_QuestionSets_Users_CreatedByUserId')
                     ALTER TABLE [QuestionSets] ADD CONSTRAINT [FK_QuestionSets_Users_CreatedByUserId]
                         FOREIGN KEY ([CreatedByUserId]) REFERENCES [Users] ([UserId]);
+                """;
+
+            await context.Database.ExecuteSqlRawAsync(sql);
+        }
+
+        private static async Task EnsureAdaptiveExamSchemaAsync(AppDbContext context)
+        {
+            const string sql = """
+                IF COL_LENGTH(N'Exams', N'AdaptiveQuestionCount') IS NULL
+                    ALTER TABLE [Exams] ADD [AdaptiveQuestionCount] int NOT NULL
+                        CONSTRAINT [DF_Exams_AdaptiveQuestionCount] DEFAULT 0;
+
+                IF COL_LENGTH(N'Exams', N'IsPublic') IS NULL
+                    ALTER TABLE [Exams] ADD [IsPublic] bit NOT NULL
+                        CONSTRAINT [DF_Exams_IsPublic] DEFAULT 1;
+                """;
+
+            await context.Database.ExecuteSqlRawAsync(sql);
+        }
+
+        private static async Task EnsureAttemptReportSchemaAsync(AppDbContext context)
+        {
+            const string sql = """
+                IF COL_LENGTH(N'ExamAttempts', N'ExamTitleSnapshot') IS NULL
+                    ALTER TABLE [ExamAttempts] ADD [ExamTitleSnapshot] nvarchar(max) NULL;
+
+                IF COL_LENGTH(N'ExamAttempts', N'ExamTotalMarksSnapshot') IS NULL
+                    ALTER TABLE [ExamAttempts] ADD [ExamTotalMarksSnapshot] int NULL;
+
+                IF COL_LENGTH(N'ExamAttempts', N'IsAdaptiveSnapshot') IS NULL
+                    ALTER TABLE [ExamAttempts] ADD [IsAdaptiveSnapshot] bit NULL;
+
+                IF COL_LENGTH(N'ExamAttempts', N'IsConfidenceWeightedSnapshot') IS NULL
+                    ALTER TABLE [ExamAttempts] ADD [IsConfidenceWeightedSnapshot] bit NULL;
+
+                IF COL_LENGTH(N'ExamAttempts', N'NegativeMarkingSnapshot') IS NULL
+                    ALTER TABLE [ExamAttempts] ADD [NegativeMarkingSnapshot] bit NULL;
+
+                DECLARE @examAttemptForeignKey sysname;
+                SELECT @examAttemptForeignKey = [name]
+                FROM sys.foreign_keys
+                WHERE [parent_object_id] = OBJECT_ID(N'[ExamAttempts]')
+                    AND [referenced_object_id] = OBJECT_ID(N'[Exams]');
+
+                IF @examAttemptForeignKey IS NOT NULL
+                BEGIN
+                    DECLARE @dropConstraintSql nvarchar(max);
+                    SET @dropConstraintSql =
+                        N'ALTER TABLE [ExamAttempts] DROP CONSTRAINT ' + QUOTENAME(@examAttemptForeignKey);
+                    EXEC sys.sp_executesql @dropConstraintSql;
+                END;
+
+                IF EXISTS (
+                    SELECT 1
+                    FROM sys.columns
+                    WHERE [object_id] = OBJECT_ID(N'[ExamAttempts]')
+                        AND [name] = N'ExamId'
+                        AND [is_nullable] = 0
+                )
+                    ALTER TABLE [ExamAttempts] ALTER COLUMN [ExamId] int NULL;
+
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM sys.foreign_keys
+                    WHERE [parent_object_id] = OBJECT_ID(N'[ExamAttempts]')
+                        AND [referenced_object_id] = OBJECT_ID(N'[Exams]')
+                )
+                    ALTER TABLE [ExamAttempts] ADD CONSTRAINT [FK_ExamAttempts_Exams_ExamId]
+                        FOREIGN KEY ([ExamId]) REFERENCES [Exams] ([ExamId]) ON DELETE SET NULL;
                 """;
 
             await context.Database.ExecuteSqlRawAsync(sql);
@@ -536,4 +614,3 @@ namespace Cognify.Services
         }
     }
 }
-

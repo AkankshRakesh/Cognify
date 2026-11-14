@@ -14,11 +14,16 @@ namespace Cognify.Data.Repositories
                 .Include(a => a.ConceptPerformances)
                 .FirstOrDefaultAsync(a => a.AttemptId == id);
 
-        public async Task<ExamAttempt> StartAsync(int examId, int userId)
+        public async Task<ExamAttempt> StartAsync(Exam exam, int userId)
         {
             var attempt = new ExamAttempt
             {
-                ExamId = examId,
+                ExamId = exam.ExamId,
+                ExamTitleSnapshot = exam.Title,
+                ExamTotalMarksSnapshot = exam.TotalMarks,
+                IsAdaptiveSnapshot = exam.UsesIrtAdaptive,
+                IsConfidenceWeightedSnapshot = exam.IsConfidenceWeighted,
+                NegativeMarkingSnapshot = exam.NegativeMarking,
                 UserId = userId,
                 StartTime = DateTime.UtcNow
             };

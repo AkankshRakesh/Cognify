@@ -149,6 +149,7 @@
                     @for (var i = 0; i < questionItems.Count; i++)
                     {
                         var q = questionItems[i];
+                        var correct = (q.CorrectOption ?? "").Trim().ToUpperInvariant();
 
                         <div class="question-editor-card" data-index="@i">
 
@@ -181,35 +182,47 @@
                             <div class="row g-2 mb-3">
 
                                 <div class="col-md-6">
-                                    <input name="Questions[@i].OptionA"
-                                           class="form-control-dark"
-                                           value="@q.OptionA"
-                                           required
-                                           placeholder="Option A">
+                                    <div class="option-row">
+                                        <span class="option-bubble @(correct == "A" ? "correct" : "")" data-option="A">A</span>
+                                        <input name="Questions[@i].OptionA"
+                                            class="form-control-dark"
+                                            value="@q.OptionA"
+                                            required
+                                            placeholder="Option A">
+                                    </div>
                                 </div>
 
                                 <div class="col-md-6">
-                                    <input name="Questions[@i].OptionB"
-                                           class="form-control-dark"
-                                           value="@q.OptionB"
-                                           required
-                                           placeholder="Option B">
+                                    <div class="option-row">
+                                        <span class="option-bubble @(correct == "B" ? "correct" : "")" data-option="B">B</span>
+                                        <input name="Questions[@i].OptionB"
+                                            class="form-control-dark"
+                                            value="@q.OptionB"
+                                            required
+                                            placeholder="Option B">
+                                    </div>
                                 </div>
 
                                 <div class="col-md-6">
-                                    <input name="Questions[@i].OptionC"
-                                           class="form-control-dark"
-                                           value="@q.OptionC"
-                                           required
-                                           placeholder="Option C">
+                                    <div class="option-row">
+                                        <span class="option-bubble @(correct == "C" ? "correct" : "")" data-option="C">C</span>
+                                        <input name="Questions[@i].OptionC"
+                                            class="form-control-dark"
+                                            value="@q.OptionC"
+                                            required
+                                            placeholder="Option C">
+                                    </div>
                                 </div>
 
                                 <div class="col-md-6">
-                                    <input name="Questions[@i].OptionD"
-                                           class="form-control-dark"
-                                           value="@q.OptionD"
-                                           required
-                                           placeholder="Option D">
+                                    <div class="option-row">
+                                        <span class="option-bubble @(correct == "D" ? "correct" : "")" data-option="D">D</span>
+                                        <input name="Questions[@i].OptionD"
+                                            class="form-control-dark"
+                                            value="@q.OptionD"
+                                            required
+                                            placeholder="Option D">
+                                    </div>
                                 </div>
 
                             </div>
@@ -224,21 +237,10 @@
                                     <select name="Questions[@i].CorrectOption"
                                             class="form-select-dark">
 
-                                        <option value="A" selected="@(q.CorrectOption == "A" ? "selected" : null)">
-                                            Option A
-                                        </option>
-
-                                        <option value="B" selected="@(q.CorrectOption == "B" ? "selected" : null)">
-                                            Option B
-                                        </option>
-
-                                        <option value="C" selected="@(q.CorrectOption == "C" ? "selected" : null)">
-                                            Option C
-                                        </option>
-
-                                        <option value="D" selected="@(q.CorrectOption == "D" ? "selected" : null)">
-                                            Option D
-                                        </option>
+                                        <option value="A" selected="@(correct == "A" ? "selected" : null)">Option A</option>
+                                        <option value="B" selected="@(correct == "B" ? "selected" : null)">Option B</option>
+                                        <option value="C" selected="@(correct == "C" ? "selected" : null)">Option C</option>
+                                        <option value="D" selected="@(correct == "D" ? "selected" : null)">Option D</option>
 
                                     </select>
                                 </div>
@@ -351,31 +353,43 @@
                     <div class="row g-2 mb-3">
 
                         <div class="col-md-6">
-                            <input name="Questions[${i}].OptionA"
-                                   class="form-control-dark"
-                                   required
-                                   placeholder="Option A">
+                            <div class="option-row">
+                                <span class="option-bubble" data-option="A">A</span>
+                                <input name="Questions[${i}].OptionA"
+                                    class="form-control-dark"
+                                    required
+                                    placeholder="Option A">
+                            </div>
                         </div>
 
                         <div class="col-md-6">
-                            <input name="Questions[${i}].OptionB"
-                                   class="form-control-dark"
-                                   required
-                                   placeholder="Option B">
+                            <div class="option-row">
+                                <span class="option-bubble" data-option="B">B</span>
+                                <input name="Questions[${i}].OptionB"
+                                    class="form-control-dark"
+                                    required
+                                    placeholder="Option B">
+                            </div>
                         </div>
 
                         <div class="col-md-6">
-                            <input name="Questions[${i}].OptionC"
-                                   class="form-control-dark"
-                                   required
-                                   placeholder="Option C">
+                            <div class="option-row">
+                                <span class="option-bubble" data-option="C">C</span>
+                                <input name="Questions[${i}].OptionC"
+                                    class="form-control-dark"
+                                    required
+                                    placeholder="Option C">
+                            </div>
                         </div>
 
                         <div class="col-md-6">
-                            <input name="Questions[${i}].OptionD"
-                                   class="form-control-dark"
-                                   required
-                                   placeholder="Option D">
+                            <div class="option-row">
+                                <span class="option-bubble" data-option="D">D</span>
+                                <input name="Questions[${i}].OptionD"
+                                    class="form-control-dark"
+                                    required
+                                    placeholder="Option D">
+                            </div>
                         </div>
 
                     </div>
@@ -420,6 +434,13 @@
                 </div>
             `;
 
+            function syncCorrect(card) {
+                const select = card.querySelector('select[name$=".CorrectOption"]');
+                card.querySelectorAll('.option-bubble').forEach(b =>
+                    b.classList.toggle('correct', b.dataset.option === select.value)
+                );
+            }
+
             function update() {
                 const items = list.querySelectorAll('.question-editor-card');
 
@@ -437,6 +458,8 @@
                         'd-none',
                         items.length === 1
                     );
+
+                    syncCorrect(item);
                 });
             }
 
@@ -452,6 +475,12 @@
                 ) {
                     event.target.closest('.question-editor-card').remove();
                     update();
+                }
+            });
+
+            list.addEventListener('change', event => {
+                if (event.target.name && event.target.name.endsWith('.CorrectOption')) {
+                    syncCorrect(event.target.closest('.question-editor-card'));
                 }
             });
         })();

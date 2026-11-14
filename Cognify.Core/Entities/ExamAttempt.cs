@@ -7,8 +7,13 @@ namespace Cognify.Core.Entities
     {
         [Key]
         public int AttemptId { get; set; }
-        public int ExamId { get; set; }
+        public int? ExamId { get; set; }
         public Exam? Exam { get; set; }
+        public string? ExamTitleSnapshot { get; set; }
+        public int? ExamTotalMarksSnapshot { get; set; }
+        public bool? IsAdaptiveSnapshot { get; set; }
+        public bool? IsConfidenceWeightedSnapshot { get; set; }
+        public bool? NegativeMarkingSnapshot { get; set; }
         public int UserId { get; set; }
         public User? User { get; set; }
 

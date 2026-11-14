@@ -21,6 +21,7 @@ namespace Cognify.Web.Controllers
         private readonly ExamRepository _examRepository;
         private readonly ScoringServiceFactory _scoringFactory;
         private readonly IConceptAnalyzer _conceptAnalyzer;
+        private readonly ThreeParameterIrtService _irtService;
         private readonly IUrlTokenProtector _urlTokens;
 
         public ExamAttemptController(
@@ -29,6 +30,7 @@ namespace Cognify.Web.Controllers
             ExamRepository examRepository,
             ScoringServiceFactory scoringFactory,
             IConceptAnalyzer conceptAnalyzer,
+            ThreeParameterIrtService irtService,
             IUrlTokenProtector urlTokens)
         {
             _context = context;
@@ -36,6 +38,7 @@ namespace Cognify.Web.Controllers
             _examRepository = examRepository;
             _scoringFactory = scoringFactory;
             _conceptAnalyzer = conceptAnalyzer;
+            _irtService = irtService;
             _urlTokens = urlTokens;
         }
 
@@ -57,18 +60,6 @@ namespace Cognify.Web.Controllers
                 return RedirectToAction("Index", "Dashboard");
             }
 
-            var now = DateTime.UtcNow;
-            if (now < exam.StartTime)
-            {
-                TempData["ErrorMessage"] = "This exam is not open yet.";
-                return RedirectToAction("Index", "Dashboard");
-            }
-            if (now >= exam.EndTime)
-            {
-                TempData["ErrorMessage"] = "This exam is no longer accepting attempts.";
-                return RedirectToAction("Index", "Dashboard");
-            }
-
             // Check if student already attempted or has in-progress attempt
             var existingAttempt = await _context.ExamAttempts
                 .FirstOrDefaultAsync(a => a.ExamId == id && a.UserId == userId);
@@ -82,7 +73,71 @@ namespace Cognify.Web.Controllers
                 return RedirectToAction("Attempt", new { token = _urlTokens.ProtectAttempt(existingAttempt.AttemptId) });
             }
 
-            var attempt = await _attemptRepository.StartAsync(id, userId);
+            var now = DateTime.UtcNow;
+            if (now < exam.StartTime)
+            {
+                TempData["ErrorMessage"] = "This exam is not open yet.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+            if (now >= exam.EndTime)
+            {
+                TempData["ErrorMessage"] = "This exam is no longer accepting attempts.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            return View("Start", new ExamStartVM
+            {
+                ExamToken = token,
+                ExamTitle = exam.Title,
+                Description = exam.Description,
+                DurationMinutes = exam.DurationMinutes,
+                QuestionCount = exam.UsesIrtAdaptive ? exam.AdaptiveQuestionCount : exam.ExamQuestions.Count
+            });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ConfirmStart(string token)
+        {
+            if (!_urlTokens.TryUnprotectExam(token, out var id)) return BadRequest("Invalid exam link.");
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdStr, out var userId))
+                return RedirectToAction("Login", "Account");
+
+            var exam = await _examRepository.GetByIdAsync(id);
+            if (exam == null)
+                return RedirectToAction("Index", "Dashboard");
+
+            if (User.FindFirstValue(ClaimTypes.Role) != UserRole.Student.ToString())
+            {
+                TempData["ErrorMessage"] = "Only student accounts can attempt an exam.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            var existingAttempt = await _context.ExamAttempts
+                .FirstOrDefaultAsync(a => a.ExamId == id && a.UserId == userId);
+            if (existingAttempt != null)
+            {
+                if (existingAttempt.Status == AttemptStatus.Submitted || existingAttempt.Status == AttemptStatus.AutoSubmitted)
+                {
+                    return RedirectToAction("Details", "Result", new { attemptToken = _urlTokens.ProtectAttempt(existingAttempt.AttemptId) });
+                }
+                return RedirectToAction("Attempt", new { token = _urlTokens.ProtectAttempt(existingAttempt.AttemptId) });
+            }
+
+            var now = DateTime.UtcNow;
+            if (now < exam.StartTime)
+            {
+                TempData["ErrorMessage"] = "This exam is not open yet.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+            if (now >= exam.EndTime)
+            {
+                TempData["ErrorMessage"] = "This exam is no longer accepting attempts.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            var attempt = await _attemptRepository.StartAsync(exam, userId);
             return RedirectToAction("Attempt", new { token = _urlTokens.ProtectAttempt(attempt.AttemptId) });
         }
 
@@ -101,7 +156,10 @@ namespace Cognify.Web.Controllers
             if (attempt.Status != AttemptStatus.InProgress)
                 return RedirectToAction("Details", "Result", new { attemptToken = _urlTokens.ProtectAttempt(attempt.AttemptId) });
 
-            var exam = await _examRepository.GetByIdAsync(attempt.ExamId);
+            if (!attempt.ExamId.HasValue)
+                return RedirectToAction("Index", "Dashboard");
+
+            var exam = await _examRepository.GetByIdAsync(attempt.ExamId.Value);
             if (exam == null)
                 return RedirectToAction("Index", "Dashboard");
 
@@ -111,6 +169,9 @@ namespace Cognify.Web.Controllers
                 attempt.StartTime.AddMinutes(exam.DurationMinutes)
             }.Min();
             if (DateTime.UtcNow >= deadline)
+                return await FinishAttemptAsync(attempt, exam);
+
+            if (exam.UsesIrtAdaptive && attempt.Answers.Count >= exam.AdaptiveQuestionCount)
                 return await FinishAttemptAsync(attempt, exam);
 
             var selectionService = _scoringFactory.GetSelectionService(exam);
@@ -147,7 +208,10 @@ namespace Cognify.Web.Controllers
                 OptionC = nextQuestion.OptionC,
                 OptionD = nextQuestion.OptionD,
                 ShowConfidenceSlider = exam.IsConfidenceWeighted,
+                NegativeMarking = exam.NegativeMarking,
+                IsAdaptive = exam.UsesIrtAdaptive,
                 CurrentQuestionNumber = attempt.Answers.Count + 1,
+                TotalQuestionCount = exam.UsesIrtAdaptive ? exam.AdaptiveQuestionCount : exam.ExamQuestions.Count,
                 SecondsRemaining = Math.Max(0, (int)Math.Floor((deadline - DateTime.UtcNow).TotalSeconds))
             };
 
@@ -171,10 +235,19 @@ namespace Cognify.Web.Controllers
             if (attempt == null || attempt.UserId != userId || attempt.Status != AttemptStatus.InProgress)
                 return RedirectToAction("Index", "Dashboard");
 
-            var exam = await _examRepository.GetByIdAsync(attempt.ExamId);
+            if (!attempt.ExamId.HasValue)
+                return RedirectToAction("Index", "Dashboard");
+
+            var exam = await _examRepository.GetByIdAsync(attempt.ExamId.Value);
             var question = await _context.Questions.FindAsync(questionId);
             if (exam == null || question == null)
                 return RedirectToAction("Index", "Dashboard");
+
+            if (attempt.Answers.Any(answer => answer.QuestionId == questionId))
+                return BadRequest("This question has already been answered.");
+
+            if (!model.Skip && !IsAvailableOption(question, model.SelectedOption))
+                return BadRequest("Select one of the available answer options.");
 
             var deadline = new[]
             {
@@ -184,15 +257,30 @@ namespace Cognify.Web.Controllers
             if (DateTime.UtcNow >= deadline)
                 return await FinishAttemptAsync(attempt, exam);
 
+            if (exam.UsesIrtAdaptive && attempt.Answers.Count >= exam.AdaptiveQuestionCount)
+                return await FinishAttemptAsync(attempt, exam);
+
+            var selectionService = _scoringFactory.GetSelectionService(exam);
+            var expectedQuestion = attempt.Answers.Count == 0
+                ? await selectionService.GetFirstQuestionAsync(attempt)
+                : await selectionService.GetNextQuestionAsync(
+                    attempt,
+                    attempt.Answers.OrderBy(answer => answer.SequencePosition).Last());
+            if (expectedQuestion?.QuestionId != questionId)
+                return BadRequest("This question is not the next question in your exam.");
+
             var isCorrect = !string.IsNullOrEmpty(model.SelectedOption) &&
+                            !model.Skip &&
                             string.Equals(model.SelectedOption.Trim(), question.CorrectOption.Trim(), StringComparison.OrdinalIgnoreCase);
 
             var answer = new AttemptAnswer
             {
                 AttemptId = attempt.AttemptId,
                 QuestionId = question.QuestionId,
-                SelectedOption = model.SelectedOption,
-                ConfidenceLevel = exam.IsConfidenceWeighted ? (model.ConfidenceLevel ?? ConfidenceLevel.Medium) : null,
+                SelectedOption = model.Skip ? null : model.SelectedOption,
+                ConfidenceLevel = exam.IsConfidenceWeighted && !model.Skip
+                    ? (model.ConfidenceLevel ?? ConfidenceLevel.Medium)
+                    : null,
                 IsCorrect = isCorrect,
                 SequencePosition = attempt.Answers.Count + 1,
                 DifficultyAtServeTime = question.DifficultyLevel
@@ -204,8 +292,11 @@ namespace Cognify.Web.Controllers
             await _attemptRepository.SaveAnswerAsync(answer);
 
             // Update question stats
-            question.TimesAttempted++;
-            if (isCorrect) question.TimesCorrect++;
+            if (!model.Skip)
+            {
+                question.TimesAttempted++;
+                if (isCorrect) question.TimesCorrect++;
+            }
             await _context.SaveChangesAsync();
 
             return RedirectToAction("Attempt", new { token = _urlTokens.ProtectAttempt(attempt.AttemptId) });
@@ -217,7 +308,10 @@ namespace Cognify.Web.Controllers
             attempt.SubmitTime = DateTime.UtcNow;
 
             // Calculate total score
-            attempt.TotalScore = Math.Max(0, attempt.Answers.Sum(a => a.MarksAwarded));
+            attempt.TotalScore = exam.UsesIrtAdaptive
+                ? Math.Round(_irtService.ToScaledScore(
+                    _irtService.EstimateAbility(attempt.Answers).Theta), 2)
+                : Math.Max(0, attempt.Answers.Sum(a => a.MarksAwarded));
 
             // Calibration metrics if confidence-weighted
             if (exam.IsConfidenceWeighted)
@@ -237,6 +331,21 @@ namespace Cognify.Web.Controllers
             await _context.SaveChangesAsync();
 
             return RedirectToAction("Details", "Result", new { attemptToken = _urlTokens.ProtectAttempt(attempt.AttemptId) });
+        }
+
+        private static bool IsAvailableOption(Question question, string? selectedOption)
+        {
+            if (string.IsNullOrWhiteSpace(selectedOption))
+                return false;
+
+            return selectedOption.Trim().ToUpperInvariant() switch
+            {
+                "A" => !string.IsNullOrWhiteSpace(question.OptionA),
+                "B" => !string.IsNullOrWhiteSpace(question.OptionB),
+                "C" => !string.IsNullOrWhiteSpace(question.OptionC),
+                "D" => !string.IsNullOrWhiteSpace(question.OptionD),
+                _ => false
+            };
         }
 
         private void contextConceptAdd(int attemptId, ConceptPerformance cp)

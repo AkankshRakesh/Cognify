@@ -12,6 +12,7 @@ namespace Cognify.Data.Repositories
             await _context.Exams
                 .Include(e => e.ExamQuestions).ThenInclude(eq => eq.Question)
                 .Include(e => e.QuestionPools)
+                .Include(e => e.QuestionSet).ThenInclude(s => s!.Questions)
                 .FirstOrDefaultAsync(e => e.ExamId == id);
 
         public async Task<List<Exam>> GetUpcomingAsync() =>

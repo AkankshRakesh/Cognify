@@ -41,6 +41,7 @@ namespace Cognify.Web.Controllers
 
             var exam = await _context.Exams
                 .Include(e => e.ExamQuestions).ThenInclude(eq => eq.Question)
+                .Include(e => e.QuestionSet)
                 .FirstOrDefaultAsync(e => e.ExamId == id &&
                     (user.Role == UserRole.Admin || e.CreatedByUserId == user.UserId));
             if (exam == null) return RedirectToAction("Index", "Dashboard");
@@ -67,9 +68,12 @@ namespace Cognify.Web.Controllers
                 SubmittedOn = attempt.SubmitTime,
                 Score = attempt.TotalScore,
                 TotalMarks = exam.TotalMarks,
+                IsAdaptive = exam.UsesIrtAdaptive,
                 CorrectCount = attempt.Answers.Count(a => a.IsCorrect),
                 WrongCount = attempt.Answers.Count(a => !a.IsCorrect && !string.IsNullOrWhiteSpace(a.SelectedOption)),
-                SkippedCount = Math.Max(0, exam.ExamQuestions.Count - attempt.Answers.Count),
+                SkippedCount = Math.Max(0, (exam.UsesIrtAdaptive
+                    ? exam.AdaptiveQuestionCount
+                    : exam.ExamQuestions.Count) - attempt.Answers.Count),
                 CalibrationScore = attempt.OverconfidenceIndex.HasValue && attempt.UnderconfidenceIndex.HasValue
                     ? Math.Round(Math.Max(0, 100 - ((attempt.OverconfidenceIndex.Value + attempt.UnderconfidenceIndex.Value) / 2)), 1)
                     : null,
@@ -89,12 +93,14 @@ namespace Cognify.Web.Controllers
             {
                 ExamId = exam.ExamId,
                 ExamTitle = exam.Title,
-                Subject = exam.ExamQuestions.Select(eq => eq.Question?.Subject).FirstOrDefault(s => !string.IsNullOrWhiteSpace(s)) ?? "General",
+                Subject = exam.QuestionSet?.Subject
+                    ?? exam.ExamQuestions.Select(eq => eq.Question?.Subject).FirstOrDefault(s => !string.IsNullOrWhiteSpace(s))
+                    ?? "General",
                 ShareUrl = Url.Action("Start", "ExamAttempt", new { token = _urlTokens.ProtectExam(exam.ExamId) }, Request.Scheme) ?? string.Empty,
                 StartTime = exam.StartTime,
                 EndTime = exam.EndTime,
                 DurationMinutes = exam.DurationMinutes,
-                QuestionCount = exam.ExamQuestions.Count,
+                QuestionCount = exam.UsesIrtAdaptive ? exam.AdaptiveQuestionCount : exam.ExamQuestions.Count,
                 TotalMarks = exam.TotalMarks,
                 Submissions = submissions
             });
@@ -118,8 +124,7 @@ namespace Cognify.Web.Controllers
             var exam = await _context.Exams
                 .Include(e => e.ExamQuestions)
                 .Include(e => e.QuestionPools)
-                .Include(e => e.Attempts).ThenInclude(a => a.Answers)
-                .Include(e => e.Attempts).ThenInclude(a => a.ConceptPerformances)
+                .Include(e => e.Attempts)
                 .FirstOrDefaultAsync(e => e.ExamId == examId &&
                     (user.Role == UserRole.Admin || e.CreatedByUserId == user.UserId));
 
@@ -132,12 +137,17 @@ namespace Cognify.Web.Controllers
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var answers = exam.Attempts.SelectMany(a => a.Answers).ToList();
-                var performances = exam.Attempts.SelectMany(a => a.ConceptPerformances).ToList();
+                foreach (var attempt in exam.Attempts.ToList())
+                {
+                    attempt.ExamTitleSnapshot = exam.Title;
+                    attempt.ExamTotalMarksSnapshot = exam.TotalMarks;
+                    attempt.IsAdaptiveSnapshot = exam.UsesIrtAdaptive;
+                    attempt.IsConfidenceWeightedSnapshot = exam.IsConfidenceWeighted;
+                    attempt.NegativeMarkingSnapshot = exam.NegativeMarking;
+                    attempt.ExamId = null;
+                    attempt.Exam = null;
+                }
 
-                _context.AttemptAnswers.RemoveRange(answers);
-                _context.ConceptPerformances.RemoveRange(performances);
-                _context.ExamAttempts.RemoveRange(exam.Attempts);
                 _context.ExamQuestionPools.RemoveRange(exam.QuestionPools);
                 _context.ExamQuestions.RemoveRange(exam.ExamQuestions);
                 _context.Exams.Remove(exam);
@@ -208,10 +218,25 @@ namespace Cognify.Web.Controllers
             var questionSet = await _context.QuestionSets
                 .Include(s => s.Questions)
                 .FirstOrDefaultAsync(s => s.QuestionSetId == model.QuestionSetId &&
-                    (user.Role == UserRole.Admin || s.CreatedByUserId == user.UserId));
+                    (s.IsBuiltIn || user.Role == UserRole.Admin || s.CreatedByUserId == user.UserId));
 
             if (questionSet == null || !questionSet.Questions.Any())
                 ModelState.AddModelError(nameof(model.QuestionSetId), "Please select a question set containing at least one question.");
+
+            if (model.Adaptive && questionSet != null)
+            {
+                var maximumAdaptiveQuestions = questionSet.Questions.Count / 2;
+                if (questionSet.Questions.Count < 100)
+                {
+                    ModelState.AddModelError(nameof(model.Adaptive),
+                        "Adaptive IRT exams require a question set with at least 100 questions.");
+                }
+                else if (model.AdaptiveQuestionCount > maximumAdaptiveQuestions)
+                {
+                    ModelState.AddModelError(nameof(model.AdaptiveQuestionCount),
+                        $"Choose no more than half of the set ({maximumAdaptiveQuestions} questions).");
+                }
+            }
 
             if (!ModelState.IsValid)
             {
@@ -224,20 +249,27 @@ namespace Cognify.Web.Controllers
                 Title = model.Title.Trim(),
                 Description = model.Description?.Trim(),
                 CreatedByUserId = user.UserId,
+                IsPublic = model.IsPublic,
                 DurationMinutes = model.DurationMinutes,
                 StartTime = model.StartTime.ToUniversalTime(),
                 EndTime = model.EndTime.ToUniversalTime(),
                 NegativeMarking = model.NegativeMarking,
                 ShuffleQuestions = model.ShuffleQuestions,
-                ScoringMode = ScoringMode.Standard,
+                ScoringMode = model.Adaptive
+                    ? (model.ConfidenceWeighted ? ScoringMode.Both : ScoringMode.Adaptive)
+                    : (model.ConfidenceWeighted ? ScoringMode.ConfidenceWeighted : ScoringMode.Standard),
                 QuestionSetId = questionSet!.QuestionSetId,
-                TotalMarks = questionSet.Questions.Sum(q => q.Marks)
+                AdaptiveQuestionCount = model.Adaptive ? model.AdaptiveQuestionCount : 0,
+                TotalMarks = model.Adaptive ? 100 : questionSet.Questions.Sum(q => q.Marks)
             };
 
-            exam.ExamQuestions = questionSet.Questions
-                .OrderBy(q => q.QuestionId)
-                .Select((q, index) => new ExamQuestion { QuestionId = q.QuestionId, SequenceOrder = index + 1 })
-                .ToList();
+            if (!model.Adaptive)
+            {
+                exam.ExamQuestions = questionSet.Questions
+                    .OrderBy(q => q.QuestionId)
+                    .Select((q, index) => new ExamQuestion { QuestionId = q.QuestionId, SequenceOrder = index + 1 })
+                    .ToList();
+            }
 
             await _context.Exams.AddAsync(exam);
             await _context.SaveChangesAsync();
@@ -252,7 +284,7 @@ namespace Cognify.Web.Controllers
             var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var currentUser = await _context.Users.FirstAsync(u => u.UserId == currentUserId);
             model.QuestionSets = await _context.QuestionSets
-                .Where(s => currentUser.Role == UserRole.Admin || s.CreatedByUserId == currentUserId)
+                .Where(s => s.IsBuiltIn || currentUser.Role == UserRole.Admin || s.CreatedByUserId == currentUserId)
                 .Include(s => s.Questions)
                 .OrderBy(s => s.Title)
                 .Select(s => new QuestionSetOptionVM
@@ -261,7 +293,8 @@ namespace Cognify.Web.Controllers
                     Title = s.Title,
                     Subject = s.Subject,
                     QuestionCount = s.Questions.Count,
-                    TotalMarks = s.Questions.Sum(q => q.Marks)
+                    TotalMarks = s.Questions.Sum(q => q.Marks),
+                    IsBuiltIn = s.IsBuiltIn
                 })
                 .ToListAsync();
         }
