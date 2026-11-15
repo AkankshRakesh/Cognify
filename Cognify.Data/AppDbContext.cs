@@ -94,9 +94,9 @@ namespace Cognify.Data
                 .WithMany(a => a.ConceptPerformances)
                 .HasForeignKey(cp => cp.AttemptId);
 
-            // Prevent a student from having two attempts on the same exam
             modelBuilder.Entity<ExamAttempt>()
-                .HasIndex(a => new { a.ExamId, a.UserId });
+                .HasIndex(a => new { a.ExamId, a.UserId })
+                .IsUnique();
         }
     }
 }

@@ -29,14 +29,12 @@ builder.Services.AddSingleton<IUrlTokenProtector, UrlTokenProtector>();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// ---- Authentication (ASP.NET Core Identity) ----
-// TODO: wire up Identity<User,...> once the Identity store mapping is finalized.
-// builder.Services.AddIdentity<User, IdentityRole>()...
 
 // ---- Repositories ----
 builder.Services.AddScoped<QuestionRepository>();
 builder.Services.AddScoped<ExamRepository>();
 builder.Services.AddScoped<AttemptRepository>();
+builder.Services.AddScoped<UserRepository>();
 
 // ---- Domain services ----
 builder.Services.AddScoped<StandardScoringService>();
@@ -50,7 +48,6 @@ builder.Services.AddScoped<ExamTimerService>();
 builder.Services.AddScoped<ScoringServiceFactory>();
 
 
-builder.Services.AddScoped<UserRepository>();
 
 var app = builder.Build();
 
