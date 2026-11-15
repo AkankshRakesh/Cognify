@@ -35,14 +35,14 @@ namespace Cognify.Web.Controllers
 
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
-            if (user == null || (user.Role != UserRole.Teacher && user.Role != UserRole.Admin))
+            if (user == null || user.Role != UserRole.Teacher)
                 return RedirectToAction("Index", "Dashboard");
 
             var exam = await _context.Exams
                 .Include(e => e.ExamQuestions).ThenInclude(eq => eq.Question)
                 .Include(e => e.QuestionSet)
                 .FirstOrDefaultAsync(e => e.ExamId == id &&
-                    (user.Role == UserRole.Admin || e.CreatedByUserId == user.UserId));
+                    e.CreatedByUserId == user.UserId);
             if (exam == null) return RedirectToAction("Index", "Dashboard");
 
             var attempts = await _context.ExamAttempts
@@ -117,7 +117,7 @@ namespace Cognify.Web.Controllers
                 return Forbid();
 
             var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
-            if (user == null || (user.Role != UserRole.Teacher && user.Role != UserRole.Admin))
+            if (user == null || user.Role != UserRole.Teacher)
                 return Forbid();
 
             var exam = await _context.Exams
@@ -125,7 +125,7 @@ namespace Cognify.Web.Controllers
                 .Include(e => e.QuestionPools)
                 .Include(e => e.Attempts)
                 .FirstOrDefaultAsync(e => e.ExamId == examId &&
-                    (user.Role == UserRole.Admin || e.CreatedByUserId == user.UserId));
+                    e.CreatedByUserId == user.UserId);
 
             if (exam == null)
             {
@@ -172,7 +172,7 @@ namespace Cognify.Web.Controllers
                 return RedirectToAction("Login", "Account");
 
             var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
-            if (user == null || (user.Role != UserRole.Teacher && user.Role != UserRole.Admin))
+            if (user == null || user.Role != UserRole.Teacher)
             {
                 TempData["ErrorMessage"] = "Only teachers can create exams.";
                 return RedirectToAction("Index", "Dashboard");
@@ -200,7 +200,7 @@ namespace Cognify.Web.Controllers
                 return RedirectToAction("Login", "Account");
 
             var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
-            if (user == null || (user.Role != UserRole.Teacher && user.Role != UserRole.Admin))
+            if (user == null || user.Role != UserRole.Teacher)
             {
                 TempData["ErrorMessage"] = "Only teachers can create exams.";
                 return RedirectToAction("Index", "Dashboard");
@@ -214,7 +214,7 @@ namespace Cognify.Web.Controllers
             var questionSet = await _context.QuestionSets
                 .Include(s => s.Questions)
                 .FirstOrDefaultAsync(s => s.QuestionSetId == model.QuestionSetId &&
-                    (s.IsBuiltIn || user.Role == UserRole.Admin || s.CreatedByUserId == user.UserId));
+                    (s.IsBuiltIn || s.CreatedByUserId == user.UserId));
 
             if (questionSet == null || !questionSet.Questions.Any())
                 ModelState.AddModelError(nameof(model.QuestionSetId), "Please select a question set containing at least one question.");
@@ -287,7 +287,7 @@ namespace Cognify.Web.Controllers
             var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var currentUser = await _context.Users.FirstAsync(u => u.UserId == currentUserId);
             model.QuestionSets = await _context.QuestionSets
-                .Where(s => s.IsBuiltIn || currentUser.Role == UserRole.Admin || s.CreatedByUserId == currentUserId)
+                .Where(s => s.IsBuiltIn || s.CreatedByUserId == currentUserId)
                 .Include(s => s.Questions)
                 .OrderBy(s => s.Title)
                 .Select(s => new QuestionSetOptionVM

@@ -31,7 +31,7 @@
 
             <div class="hero-main">
                 <p class="hero-hello">
-                    @(User.IsInRole("Teacher") || User.IsInRole("Admin") ? "Teacher workspace" : "Shared resources")
+                    Teacher workspace
                 </p>
                 <h1 class="hero-level">Question bank catalog</h1>
                 <p class="muted mb-0">
@@ -39,7 +39,7 @@
                 </p>
             </div>
 
-            @if (User.IsInRole("Teacher") || User.IsInRole("Admin"))
+            @if (User.IsInRole("Teacher"))
             {
                 <a asp-action="CreateSet" class="px-btn">
                     + New question bank

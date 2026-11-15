@@ -159,3 +159,6 @@ C:\Users\Akanksh Rakesh\AppData\Local\Temp\CognifyBuildProgression\Cognify.Servi
 C:\Users\Akanksh Rakesh\AppData\Local\Temp\CognifyBuildProgressionFinal\Cognify.Services.deps.json
 C:\Users\Akanksh Rakesh\AppData\Local\Temp\CognifyBuildProgressionFinal\Cognify.Services.dll
 C:\Users\Akanksh Rakesh\AppData\Local\Temp\CognifyBuildProgressionFinal\Cognify.Services.pdb
+C:\Users\Akanksh Rakesh\AppData\Local\Temp\CognifyBuildRoleCleanup\Cognify.Services.deps.json
+C:\Users\Akanksh Rakesh\AppData\Local\Temp\CognifyBuildRoleCleanup\Cognify.Services.dll
+C:\Users\Akanksh Rakesh\AppData\Local\Temp\CognifyBuildRoleCleanup\Cognify.Services.pdb

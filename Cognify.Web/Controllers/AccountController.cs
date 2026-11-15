@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Cognify.Core.Entities;
+using Cognify.Core.Enums;
 using Cognify.Data.Repositories;
 using Cognify.Services;
 using Cognify.Web.ViewModels;
@@ -35,6 +36,9 @@ namespace Cognify.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterVM model)
         {
+            if (model.Role != UserRole.Student && model.Role != UserRole.Teacher)
+                ModelState.AddModelError(nameof(model.Role), "Select Student or Teacher.");
+
             if (!ModelState.IsValid)
                 return View(model);
 
