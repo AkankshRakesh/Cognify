@@ -13,40 +13,30 @@ namespace Cognify.Web.ViewModels
 
         public string Subject { get; set; } = "Computer Science";
 
-        [Display(Name = "Make exam public")]
         public bool IsPublic { get; set; } = true;
 
         [Required(ErrorMessage = "Please select a question set")]
-        [Display(Name = "Question Set")]
         public int QuestionSetId { get; set; }
 
         [Required(ErrorMessage = "Duration is required")]
         [Range(5, 360, ErrorMessage = "Duration must be between 5 and 360 minutes")]
-        [Display(Name = "Duration (Minutes)")]
         public int DurationMinutes { get; set; } = 45;
 
         [Required(ErrorMessage = "Start time is required")]
-        [Display(Name = "Start Time")]
         public DateTime StartTime { get; set; } = DateTime.Now;
 
         [Required(ErrorMessage = "End time is required")]
-        [Display(Name = "End Time")]
         public DateTime EndTime { get; set; } = DateTime.Now.AddDays(7);
 
-        [Display(Name = "Enable Negative Marking")]
         public bool NegativeMarking { get; set; }
 
-        [Display(Name = "Enable confidence-based marking")]
         public bool ConfidenceWeighted { get; set; }
 
-        [Display(Name = "Enable adaptive IRT exam")]
         public bool Adaptive { get; set; }
 
         [Range(1, int.MaxValue, ErrorMessage = "Adaptive exams must contain at least one question.")]
-        [Display(Name = "Questions per student")]
         public int AdaptiveQuestionCount { get; set; } = 20;
 
-        [Display(Name = "Shuffle Questions")]
         public bool ShuffleQuestions { get; set; } = true;
 
         public List<QuestionSetOptionVM> QuestionSets { get; set; } = new();

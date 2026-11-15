@@ -6,7 +6,6 @@ namespace Cognify.Web.ViewModels
     public class RegisterVM
     {
         [Required(ErrorMessage = "Name is required")]
-        [Display(Name = "Full Name")]
         public string Name { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Email is required")]
@@ -21,11 +20,9 @@ namespace Cognify.Web.ViewModels
         [Required(ErrorMessage = "Please confirm your password")]
         [DataType(DataType.Password)]
         [Compare(nameof(Password), ErrorMessage = "Passwords do not match")]
-        [Display(Name = "Confirm Password")]
         public string ConfirmPassword { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Please select a role")]
-        [Display(Name = "I am a")]
         public UserRole Role { get; set; } = UserRole.Student;
     }
 
@@ -39,7 +36,6 @@ namespace Cognify.Web.ViewModels
         [DataType(DataType.Password)]
         public string Password { get; set; } = string.Empty;
 
-        [Display(Name = "Remember me")]
         public bool RememberMe { get; set; }
 
         public string? ReturnUrl { get; set; }
