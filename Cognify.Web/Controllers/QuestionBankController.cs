@@ -27,12 +27,12 @@ namespace Cognify.Web.Controllers
         public async Task<IActionResult> Index()
         {
             var userRole = User.FindFirstValue(ClaimTypes.Role);
-            if (userRole != UserRole.Admin.ToString() && userRole != UserRole.Teacher.ToString())
+            if (userRole != UserRole.Teacher.ToString())
                 return RedirectToAction("Index", "Dashboard");
 
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var sets = await _context.QuestionSets
-                .Where(s => s.IsBuiltIn || userRole == UserRole.Admin.ToString() || s.CreatedByUserId == userId)
+                .Where(s => s.IsBuiltIn || s.CreatedByUserId == userId)
                 .Include(s => s.Questions)
                 .OrderByDescending(s => s.CreatedOn)
                 .ToListAsync();
@@ -182,7 +182,7 @@ namespace Cognify.Web.Controllers
         public async Task<IActionResult> CreateSet()
         {
             var userRole = User.FindFirstValue(ClaimTypes.Role);
-            if (userRole != UserRole.Teacher.ToString() && userRole != UserRole.Admin.ToString())
+            if (userRole != UserRole.Teacher.ToString())
                 return RedirectToAction("Index", "Dashboard");
 
             await PopulateCreateSetViewAsync();
@@ -195,7 +195,7 @@ namespace Cognify.Web.Controllers
         public async Task<IActionResult> CreateSet(QuestionSetCreateVM model, string? returnUrl = null)
         {
             var userRole = User.FindFirstValue(ClaimTypes.Role);
-            if (userRole != UserRole.Teacher.ToString() && userRole != UserRole.Admin.ToString())
+            if (userRole != UserRole.Teacher.ToString())
             {
                 TempData["ErrorMessage"] = "Only teachers can add question sets.";
                 return RedirectToAction("Index", "Dashboard");
@@ -315,20 +315,20 @@ namespace Cognify.Web.Controllers
                 .Include(s => s.Questions)
                 .FirstOrDefaultAsync(s => s.QuestionSetId == id &&
                     !s.IsBuiltIn &&
-                    (role == UserRole.Admin.ToString() || s.CreatedByUserId == userId));
+                    s.CreatedByUserId == userId);
         }
 
         private async Task<QuestionSet?> GetAccessibleSetAsync(int id)
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var role = User.FindFirstValue(ClaimTypes.Role);
-            var canViewBuiltIn = role == UserRole.Teacher.ToString() || role == UserRole.Admin.ToString();
+            var canViewBuiltIn = role == UserRole.Teacher.ToString();
 
             return await _context.QuestionSets
                 .Include(s => s.Questions)
                 .FirstOrDefaultAsync(s => s.QuestionSetId == id &&
                     ((s.IsBuiltIn && canViewBuiltIn) ||
-                     (!s.IsBuiltIn && (role == UserRole.Admin.ToString() || s.CreatedByUserId == userId))));
+                     (!s.IsBuiltIn && s.CreatedByUserId == userId)));
         }
 
         private static void UpdateQuestion(Question question, QuestionInputVM input)

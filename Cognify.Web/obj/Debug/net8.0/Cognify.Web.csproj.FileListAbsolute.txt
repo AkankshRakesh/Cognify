@@ -1419,3 +1419,11 @@ C:\Users\Akanksh Rakesh\AppData\Local\Temp\CognifyBuildProgressionFinal\Cognify.
 C:\Users\Akanksh Rakesh\AppData\Local\Temp\CognifyBuildProgressionFinal\Cognify.Web.runtimeconfig.json
 C:\Users\Akanksh Rakesh\AppData\Local\Temp\CognifyBuildProgressionFinal\Cognify.Web.dll
 C:\Users\Akanksh Rakesh\AppData\Local\Temp\CognifyBuildProgressionFinal\Cognify.Web.pdb
+C:\Users\Akanksh Rakesh\AppData\Local\Temp\CognifyBuildRoleCleanup\appsettings.json
+C:\Users\Akanksh Rakesh\AppData\Local\Temp\CognifyBuildRoleCleanup\Cognify.Web.staticwebassets.runtime.json
+C:\Users\Akanksh Rakesh\AppData\Local\Temp\CognifyBuildRoleCleanup\Cognify.Web.staticwebassets.endpoints.json
+C:\Users\Akanksh Rakesh\AppData\Local\Temp\CognifyBuildRoleCleanup\Cognify.Web.exe
+C:\Users\Akanksh Rakesh\AppData\Local\Temp\CognifyBuildRoleCleanup\Cognify.Web.deps.json
+C:\Users\Akanksh Rakesh\AppData\Local\Temp\CognifyBuildRoleCleanup\Cognify.Web.runtimeconfig.json
+C:\Users\Akanksh Rakesh\AppData\Local\Temp\CognifyBuildRoleCleanup\Cognify.Web.dll
+C:\Users\Akanksh Rakesh\AppData\Local\Temp\CognifyBuildRoleCleanup\Cognify.Web.pdb

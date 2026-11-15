@@ -4,7 +4,7 @@ namespace Cognify.Web.ViewModels
     {
         public string? UserName { get; set; }
         public bool IsAuthenticated { get; set; }
-        public string? Role { get; set; } // "Admin" | "Teacher" | "Student" | null
+        public string? Role { get; set; } // "Teacher" | "Student" | null
 
         // Platform-wide stats shown on the landing page
         public int TotalExamsConducted { get; set; }

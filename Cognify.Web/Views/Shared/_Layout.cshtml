@@ -34,7 +34,7 @@
                             <li class="nav-item">
                                 <a class="btn btn-outline-light btn-sm px-3" asp-controller="Dashboard" asp-action="Index">Dashboard</a>
                             </li>
-                            @if (User.IsInRole("Teacher") || User.IsInRole("Admin"))
+                            @if (User.IsInRole("Teacher"))
                             {
                                 <li class="nav-item">
                                     <a class="btn btn-outline-info btn-sm px-3" asp-controller="QuestionBank" asp-action="Index">Question Bank</a>

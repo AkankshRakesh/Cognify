@@ -27,13 +27,13 @@ namespace Cognify.Web.Controllers
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var role = User.FindFirstValue(ClaimTypes.Role);
-            var canViewBuiltIn = role == UserRole.Teacher.ToString() || role == UserRole.Admin.ToString();
+            var canViewBuiltIn = role == UserRole.Teacher.ToString();
 
             return await _context.QuestionSets
                 .Include(s => s.Questions)
                 .FirstOrDefaultAsync(s => s.QuestionSetId == id &&
                     ((s.IsBuiltIn && canViewBuiltIn) ||
-                     (!s.IsBuiltIn && (role == UserRole.Admin.ToString() || s.CreatedByUserId == userId))));
+                     (!s.IsBuiltIn && s.CreatedByUserId == userId)));
         }
 
         public async Task<IActionResult> Index()
@@ -51,7 +51,7 @@ namespace Cognify.Web.Controllers
                 return RedirectToAction("Login", "Account");
 
             // Separate dashboard experience based on Role
-            if (user.Role == UserRole.Teacher || user.Role == UserRole.Admin)
+            if (user.Role == UserRole.Teacher)
             {
                 var teacherVm = await BuildTeacherDashboardAsync(user);
                 return View("TeacherDashboard", teacherVm);
@@ -63,19 +63,19 @@ namespace Cognify.Web.Controllers
 
         private async Task<TeacherDashboardVM> BuildTeacherDashboardAsync(User user)
         {
-            // Exams created by this teacher (or all exams if Admin)
+            // Exams created by this teacher
             var teacherExams = await _context.Exams
                 .Include(e => e.ExamQuestions)
                     .ThenInclude(eq => eq.Question)
                 .Include(e => e.QuestionPools)
                     .ThenInclude(qp => qp.ConceptTag)
                 .Include(e => e.QuestionSet)
-                .Where(e => user.Role == UserRole.Admin || e.CreatedByUserId == user.UserId)
+                .Where(e => e.CreatedByUserId == user.UserId)
                 .OrderByDescending(e => e.StartTime)
                 .ToListAsync();
 
             var questionSets = await _context.QuestionSets
-                .Where(s => s.IsBuiltIn || user.Role == UserRole.Admin || s.CreatedByUserId == user.UserId)
+                .Where(s => s.IsBuiltIn || s.CreatedByUserId == user.UserId)
                 .Include(s => s.Questions)
                 .OrderByDescending(s => s.CreatedOn)
                 .ToListAsync();
@@ -223,7 +223,7 @@ namespace Cognify.Web.Controllers
                 .Include(s => s.Questions)
                 .FirstOrDefaultAsync(s => s.QuestionSetId == id &&
                     !s.IsBuiltIn &&
-                    (role == UserRole.Admin.ToString() || s.CreatedByUserId == userId));
+                    s.CreatedByUserId == userId);
         }
         
         private async Task PopulateCreateSetViewAsync()
