@@ -2,8 +2,6 @@ using Cognify.Core.Entities;
 
 namespace Cognify.Services
 {
-    // Server-side authority on exam timing. The client-side JS countdown is
-    // for UX only - this is what actually decides whether a submission is valid.
     public class ExamTimerService
     {
         public DateTime ComputeAttemptDeadline(Exam exam, ExamAttempt attempt) =>
