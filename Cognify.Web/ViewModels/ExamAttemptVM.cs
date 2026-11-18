@@ -31,6 +31,7 @@ namespace Cognify.Web.ViewModels
         public int SecondsRemaining { get; set; }
         public int CurrentQuestionNumber { get; set; }
         public int TotalQuestionCount { get; set; }
+        public bool IsLastQuestion { get; set; }
     }
 
     public class AnswerSubmitVM
