@@ -193,6 +193,10 @@ namespace Cognify.Web.Controllers
                 return await FinishAttemptAsync(attempt, exam);
             }
 
+            var totalQuestionCount = exam.UsesIrtAdaptive
+                ? exam.AdaptiveQuestionCount
+                : exam.ExamQuestions.Count;
+
             var vm = new ExamAttemptVM
             {
                 AttemptId = attempt.AttemptId,
@@ -211,7 +215,8 @@ namespace Cognify.Web.Controllers
                 NegativeMarking = exam.NegativeMarking,
                 IsAdaptive = exam.UsesIrtAdaptive,
                 CurrentQuestionNumber = attempt.Answers.Count + 1,
-                TotalQuestionCount = exam.UsesIrtAdaptive ? exam.AdaptiveQuestionCount : exam.ExamQuestions.Count,
+                TotalQuestionCount = totalQuestionCount,
+                IsLastQuestion = attempt.Answers.Count + 1 >= totalQuestionCount,
                 SecondsRemaining = Math.Max(0, (int)Math.Floor((deadline - DateTime.UtcNow).TotalSeconds))
             };
 

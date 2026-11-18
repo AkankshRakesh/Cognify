@@ -127,7 +127,7 @@
                                 }
                                 else
                                 {
-                                    <span>Low Confidence (75% / @(Model.NegativeMarking ? "-25%" : "0%"))</span>
+                                    <span>Low Confidence</span>
                                 }
                             </label>
                             <label class="d-flex align-items-center gap-2 text-light">
@@ -138,7 +138,7 @@
                                 }
                                 else
                                 {
-                                    <span>Medium Confidence (100% / @(Model.NegativeMarking ? "-50%" : "0%"))</span>
+                                    <span>Medium Confidence</span>
                                 }
                             </label>
                             <label class="d-flex align-items-center gap-2 text-light">
@@ -149,7 +149,7 @@
                                 }
                                 else
                                 {
-                                    <span>High Confidence (150% / @(Model.NegativeMarking ? "-100%" : "0%"))</span>
+                                    <span>High Confidence</span>
                                 }
                             </label>
                         </div>
@@ -160,9 +160,11 @@
                     <a asp-controller="Dashboard" asp-action="Index" class="btn btn-outline-secondary">Leave Exam</a>
                     <div class="d-flex gap-2">
                         <button id="skip-question" type="submit" name="Skip" value="true" formnovalidate class="btn btn-outline-light">
-                            Skip question
+                            @(Model.IsLastQuestion ? "Skip and end exam" : "Skip question")
                         </button>
-                        <button type="submit" class="px-btn">Next Question &rarr;</button>
+                        <button type="submit" class="px-btn">
+                            @(Model.IsLastQuestion ? "End Exam" : "Next Question")@if (!Model.IsLastQuestion) { <text> &rarr;</text> }
+                        </button>
                     </div>
                 </div>
 
