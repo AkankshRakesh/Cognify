@@ -7,6 +7,8 @@ objective (MCQ) examinations. It supports fixed-question exams, confidence
 weighted scoring, and adaptive exams using a simplified three-parameter Item
 Response Theory (3PL IRT) model.
 
+![Home](images/home.png)
+
 ## Deployment
 
 The application is deployed at:
@@ -89,6 +91,10 @@ cookie authentication, claims, and `PasswordHasher`.
 - Question editing and removal
 - Question attempt and correctness statistics
 
+![QB](images/qb.png)
+
+![QS](images/qs.png)
+
 ### Exams
 
 - Exam title, description, schedule, duration, and total marks
@@ -99,6 +105,8 @@ cookie authentication, claims, and `PasswordHasher`.
 - Optional confidence-weighted scoring
 - Teacher submission and result views
 - One attempt per student per exam
+
+![Exam](images/exam.png)
 
 ### Exam attempts
 
@@ -112,6 +120,8 @@ cookie authentication, claims, and `PasswordHasher`.
 - Automatic completion when time expires or the question limit is reached
 - Result summaries and answer analysis
 
+![examat](images/examat.png)
+
 ### Adaptive and analytical features
 
 - 3PL IRT adaptive question selection
@@ -123,6 +133,8 @@ cookie authentication, claims, and `PasswordHasher`.
 - Overconfidence and underconfidence indexes
 - Per-concept performance summaries
 - Teacher analytics and student dashboards
+
+![adap](images/adap.png)
 
 ## Exam Modes
 
