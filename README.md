@@ -1,112 +1,394 @@
-# Cognify — Online Examination and Auto-Evaluation System
+# Cognify
 
-An ASP.NET Core (MVC + Razor) platform for conducting objective (MCQ) exams,
-with two optional diagnostic engines a teacher can toggle independently per exam:
+## Online Examination and Auto-Evaluation System
 
-- **Adaptive IRT exams** — a 3PL computer-adaptive test selects the next unseen
-  item by maximum Fisher information at the student's Bayesian EAP ability
-  estimate. Adaptive sets must contain at least 100 questions and teachers set
-  the student test length to at most half of the set. The resulting ability is
-  reported as a 0-100 score with its estimate and posterior standard error;
-  conventional raw marks for answered items are also shown as a secondary score.
-- **Confidence-Weighted Scoring** — students tag Low/Medium/High confidence per
-  answer. It increases correct-answer marks by confidence and, only when
-  negative marking is enabled, penalizes incorrect answers by confidence. It
-  also produces a post-exam calibration report.
+Cognify is an ASP.NET Core MVC application for creating and attempting
+objective (MCQ) examinations. It supports fixed-question exams, confidence
+weighted scoring, and adaptive exams using a simplified three-parameter Item
+Response Theory (3PL IRT) model.
 
-The adaptive engine currently uses provisional item parameters: discrimination
-`a=1`, difficulty `b=-1/0/1` for Easy/Medium/Hard, and guessing `c=1/k` for
-`k` populated answer options. These are defaults rather than empirically
-calibrated parameters. When both adaptive and confidence options are enabled,
-the Bayesian IRT grade is authoritative and confidence is collected for
-calibration only.
+## Deployment
 
-On initialization, the app seeds a built-in, read-only "Computer Science
-Adaptive Test Bank (120 Questions)" set with 40 questions at each difficulty.
-It is shared across teacher accounts and available when creating exams.
+The application is deployed at:
 
-Both are OFF by default (Standard scoring / fixed question list), so the platform
-works as a normal MCQ exam tool if neither is enabled.
+**http://cognify.runasp.net/**
 
-## Solution Layout
+## Technology Stack
 
-```
+- .NET 8 / ASP.NET Core MVC
+- C#
+- Razor Views
+- Entity Framework Core 8
+- SQL Server / LocalDB
+- Cookie authentication
+- ASP.NET Core Data Protection
+- Bootstrap, custom CSS, and JavaScript
+
+## Solution Architecture
+
+```text
 Cognify.sln
-├── Cognify.Web          ASP.NET Core MVC app (Razor views, controllers)
-├── Cognify.Core         Domain entities, enums, interfaces (no dependencies)
-├── Cognify.Services     Business logic: scoring strategies, adaptive engine,
-│                                 concept map / calibration analysis, exam timer
-├── Cognify.Data         EF Core AppDbContext + repositories (SQL Server)
+|
+├── Cognify.Web
+|   ASP.NET Core MVC application
+|   Controllers, Razor Views, ViewModels, authentication, startup
+|
+├── Cognify.Core
+|   Domain entities, enums, and interfaces
+|   Has no project dependencies
+|
+├── Cognify.Data
+|   EF Core AppDbContext and repositories
+|   SQL Server persistence
+|
+└── Cognify.Services
+    Business logic and application services
+    Scoring, question selection, adaptive testing, timing,
+    password hashing, initialization, and analytics
 ```
 
-## What's implemented in full
+The main request flow is:
 
-- All domain entities and EF Core mappings (`AppDbContext`)
-- Repositories: `QuestionRepository`, `ExamRepository`, `AttemptRepository`
-- Scoring strategies: `StandardScoringService`, `ConfidenceWeightedScoringService`
-- Question delivery strategies: `FixedPoolSelectionService`, `AdaptiveSelectionService`
-- `AdaptiveDifficultyEngine` — the difficulty ladder logic
-- `ConceptMapGenerator` — weak-concept heatmap + overconfidence/underconfidence index
-- `ScoringServiceFactory` — resolves the right strategy pair from `Exam.ScoringMode`
-  (a `[Flags]` enum, so None / Confidence-only / Adaptive-only / Both all fall out
-  naturally with no branching in controllers)
-- `ExamTimerService` — server-side timing authority (never trusts the client clock)
-- `Program.cs` — full DI wiring for everything above
-- **`HomeController` + `Views/Home/Index.cshtml`** — fully built landing/dashboard
-  page (see below)
+```text
+Browser
+  -> ASP.NET Core middleware
+  -> MVC controller
+  -> repository / AppDbContext
+  -> domain service
+  -> SQL Server
+  -> Razor view
+  -> HTML response
+```
 
-## What's left as connecting stubs
+## Implemented Features
 
-Per project scope, these controllers/views exist (so the solution builds and
-routes resolve) but contain only `// TODO` bodies — implement using the
-services/repositories above:
+### Accounts and security
 
-- `AccountController` (Identity login/register)
-- `ExamController` (create/configure exam with fixed or adaptive IRT delivery)
-- `ExamAttemptController` (start/attempt/submit flow using
-  `IQuestionSelectionService`, `IScoringService`, `ExamTimerService`)
-- `ResultController` (result summary + calibration report + concept map, using
-  `IConceptAnalyzer`)
-- `QuestionBankController`, `AdminController`, `AnalyticsController`
+- Student and teacher registration
+- Custom cookie-based authentication
+- Login, logout, and Remember Me support
+- PBKDF2 password hashing with a random salt
+- Role-aware student, teacher, and admin workflows
+- ASP.NET Core Data Protection for exam, attempt, question, and question-set URL
+  tokens
+- Anti-forgery validation on POST forms
+- Local return URL validation after login
 
-ASP.NET Core Identity itself is referenced (`Microsoft.AspNetCore.Identity.EntityFrameworkCore`
-package is in the `.csproj`) but not yet wired into `Program.cs` — the `User`
-entity currently stores its own `PasswordHash` field as a placeholder; swap
-this for `IdentityUser<int>` when you wire up Identity properly.
+ASP.NET Core Identity packages are referenced, but full Identity is not wired
+up. The current implementation uses the application's custom `User` entity,
+cookie authentication, claims, and `PasswordHasher`.
 
-## Home Page
+### Question banks
 
-`Views/Home/Index.cshtml` is fully built out as the flagship page:
+- Teacher-created question sets
+- Built-in read-only question set
+- Questions with four options, correct option, subject, concept, difficulty,
+  and marks
+- Concept tags
+- Easy, Medium, and Hard difficulty levels
+- Question editing and removal
+- Question attempt and correctness statistics
 
-- Hero section with a live "mock exam" card showing a question, options, and a
-  confidence-pill selector, plus platform-wide stats
-- A student dashboard strip (upcoming exams / recent results) shown only when
-  `HomeIndexVM.IsAuthenticated` is true
-- A feature grid that visually distinguishes the two "Unique" engines
-  (amber = Adaptive, teal = Confidence-Weighted) from standard features
-- A signature "Calibration Quadrant" visual — the same confidence-vs-correctness
-  plot the real `ResultController` should eventually render from
-  `IConceptAnalyzer.CalculateCalibrationAsync`
-- A "How It Works" process list and role-based (Teacher / Student) entry cards
-- A custom design system in `wwwroot/css/site.css` (ink navy + amber/teal accents,
-  Sora/Inter typefaces) — not a default Bootstrap look
+### Exams
 
-`HomeController.Index()` currently populates `HomeIndexVM` with representative
-placeholder data so the page is fully demoable without a database connection.
-Replace that block with real calls to `ExamRepository` / `AttemptRepository`
-once the login flow and seed data are in place.
+- Exam title, description, schedule, duration, and total marks
+- Public/private exam flag
+- Fixed-question exams
+- Adaptive exams
+- Optional negative marking
+- Optional confidence-weighted scoring
+- Teacher submission and result views
+- One attempt per student per exam
 
-## Next Steps to Run This For Real
+### Exam attempts
 
-1. Wire ASP.NET Core Identity into `Program.cs` and adjust the `User` entity
-   accordingly (or keep the custom auth and hash passwords properly, e.g. with
-   `PasswordHasher<User>`).
-2. Run `dotnet ef migrations add InitialCreate -p Cognify.Data -s Cognify.Web`
-   then `dotnet ef database update` to create the SQL Server schema.
-3. Implement `QuestionBankController` CRUD views for adding/importing questions.
-4. Add and calibrate a larger question bank before creating adaptive IRT exams;
-   the seeded starter bank is intentionally below the 100-item minimum.
-5. Continue expanding `ExamAttemptController` and `ResultController` for any
-   additional exam workflows and reporting.
-7. Run `dotnet test` in `Cognify.Tests` to verify the scoring/adaptive
-   logic before wiring it into controllers.
+- Server-created attempt records
+- Server-authoritative deadline
+- Immediate persistence of every answer
+- Fixed or adaptive question delivery
+- Skip support
+- Duplicate-answer prevention
+- Server-side answer and question-order validation
+- Automatic completion when time expires or the question limit is reached
+- Result summaries and answer analysis
+
+### Adaptive and analytical features
+
+- 3PL IRT adaptive question selection
+- Bayesian ability estimation
+- Fisher-information-based question selection
+- Ability standard error
+- Theta-to-0-100 score conversion
+- Confidence calibration analysis
+- Overconfidence and underconfidence indexes
+- Per-concept performance summaries
+- Teacher analytics and student dashboards
+
+## Exam Modes
+
+The `ScoringMode` flags enum supports these combinations:
+
+| Mode | Question delivery | Scoring |
+|---|---|---|
+| Standard | Fixed question list | Normal marks with optional negative marking |
+| ConfidenceWeighted | Fixed question list | Confidence-based marks |
+| Adaptive | Runtime adaptive selection | IRT ability score |
+| Both | Runtime adaptive selection | IRT score, with confidence used for calibration |
+
+### Fixed-question exams
+
+Fixed exams use `ExamQuestion` records. Questions are served according to
+`SequenceOrder`.
+
+The current fixed selector reads the stored order. Although `Exam` contains a
+`ShuffleQuestions` property, the current selection service does not yet
+randomize the order per student.
+
+### Adaptive exams
+
+New adaptive exams use the configured `QuestionSet` and
+`AdaptiveQuestionCount`. The adaptive service:
+
+1. Excludes questions already answered.
+2. Estimates the student's current ability (`theta`).
+3. Calculates Fisher information for remaining questions.
+4. Selects the question with maximum information.
+5. Uses a deterministic seed to resolve equal-information ties.
+
+Adaptive exams currently use provisional item parameters:
+
+- Discrimination `a = 1`
+- Difficulty `b = -1` for Easy, `0` for Medium, and `1` for Hard
+- Guessing `c = 1 / populated option count`, with a minimum denominator of 2
+
+These are defaults, not empirically calibrated item parameters.
+
+## Exam-Taking Flow
+
+```text
+1. Student opens a protected exam link.
+2. The token, identity, role, exam schedule, and existing attempts are checked.
+3. The student confirms the start.
+4. An ExamAttempt is created and its start time is persisted.
+5. The next fixed or adaptive question is selected.
+6. The question is rendered by a Razor view.
+7. The student submits an option, confidence level, or skip.
+8. The server validates ownership, timing, question order, and option validity.
+9. Correctness is calculated on the server.
+10. The selected scoring strategy calculates marks.
+11. AttemptAnswer is saved immediately.
+12. The next question is selected.
+13. On completion or expiry, the attempt is finalized.
+14. Score, calibration, concept performance, and result data are saved.
+15. The student is redirected to the result page.
+```
+
+The deadline is the earlier of:
+
+```text
+Exam.EndTime
+Attempt.StartTime + Exam.DurationMinutes
+```
+
+The browser countdown is only a user-interface aid. The server recalculates
+the deadline for every relevant request.
+
+## Scoring
+
+### Standard scoring
+
+- Unattempted: `0`
+- Correct: full question marks
+- Wrong without negative marking: `0`
+- Wrong with negative marking: `-25%` of question marks
+
+### Confidence-weighted scoring
+
+| Result | Low | Medium | High |
+|---|---:|---:|---:|
+| Correct | `0.75x` | `1.0x` | `1.5x` |
+| Wrong with negative marking | `-0.25x` | `-0.5x` | `-1.0x` |
+| Wrong without negative marking | `0` | `0` | `0` |
+
+Positive marks are capped at the question's normal marks. In adaptive mode,
+the IRT score is authoritative; confidence is collected for calibration when
+the combined mode is used.
+
+## Project Structure
+
+### `Cognify.Web`
+
+- `Program.cs` - application hosting, dependency injection, middleware,
+  authentication, authorization, EF Core registration, and routing
+- `Controllers/` - MVC request orchestration
+- `ViewModels/` - form and display models
+- `Views/` - Razor pages and layouts
+- `Security/` - protected URL token services
+- `wwwroot/` - CSS, JavaScript, and images
+
+Important controllers:
+
+- `AccountController`
+- `DashboardController`
+- `ExamController`
+- `ExamAttemptController`
+- `QuestionBankController`
+- `ResultController`
+
+`AdminController` and `AnalyticsController` currently exist as minimal
+controllers without implemented actions.
+
+### `Cognify.Core`
+
+Entities include:
+
+- `User`
+- `Question`
+- `QuestionSet`
+- `ConceptTag`
+- `Exam`
+- `ExamQuestion`
+- `ExamQuestionPool`
+- `ExamAttempt`
+- `AttemptAnswer`
+- `ConceptPerformance`
+
+Interfaces include:
+
+- `IScoringService`
+- `IQuestionSelectionService`
+- `IAdaptiveEngine`
+- `IConceptAnalyzer`
+
+### `Cognify.Data`
+
+- `AppDbContext`
+- `QuestionRepository`
+- `ExamRepository`
+- `AttemptRepository`
+- `UserRepository`
+
+`AppDbContext` defines entity relationships, indexes, foreign keys, and delete
+behavior for SQL Server.
+
+### `Cognify.Services`
+
+- `StandardScoringService`
+- `ConfidenceWeightedScoringService`
+- `ScoringServiceFactory`
+- `FixedPoolSelectionService`
+- `AdaptiveSelectionService`
+- `AdaptiveDifficultyEngine`
+- `ThreeParameterIrtService`
+- `ExamTimerService`
+- `ConceptMapGenerator`
+- `PasswordHasher`
+- `DbInitializer`
+- `AdaptiveTestQuestionSetSeeder`
+
+## Database and Initialization
+
+The application uses SQL Server through Entity Framework Core. The default
+development connection string targets SQL Server LocalDB:
+
+```text
+Server=(localdb)\mssqllocaldb;Database=CognifyDb;
+Trusted_Connection=True;MultipleActiveResultSets=true
+```
+
+On startup, `DbInitializer`:
+
+1. Ensures the database exists.
+2. Applies compatibility SQL for schema additions.
+3. Seeds concept tags.
+4. Seeds a teacher account.
+5. Seeds starter questions, question sets, and exams.
+6. Seeds the built-in 120-question adaptive test bank.
+7. Initializes student accounts with initial data.
+
+The current repository uses `EnsureCreatedAsync` and compatibility SQL. It does
+not currently contain EF Core migration files.
+
+## Dependency Injection
+
+The application uses ASP.NET Core's built-in dependency injection container.
+Repositories and business services are registered mostly as scoped services,
+including:
+
+- `AppDbContext`
+- Repositories
+- Scoring services
+- Question-selection services
+- `ThreeParameterIrtService`
+- `IConceptAnalyzer`
+- `ScoringServiceFactory`
+
+The factory selects scoring and question-selection strategies from the exam's
+`ScoringMode`, so controllers do not implement the scoring algorithms directly.
+
+## MVC and Razor
+
+The project uses:
+
+- Controllers and action methods
+- Strongly typed ViewModels
+- Razor views
+- `_Layout.cshtml`
+- `_ViewStart.cshtml`
+- `_ViewImports.cshtml`
+- Tag Helpers
+- Model binding
+- Data Annotation validation
+- Server-side and client-side validation
+- `TempData` for redirect messages
+- `ViewBag` for small auxiliary view data
+
+ASP.NET Core Session is not currently configured. `TempData` is used for
+short-lived redirect messages, but it is not the same as session state.
+
+## REST/Web API Status
+
+This repository is currently an MVC/Razor application, not a full REST Web API.
+It does not currently contain `[ApiController]` CRUD controllers, API
+attribute routing, or Postman collections. The question bank includes a small
+JSON endpoint for loading concept options, but the main application workflow
+returns Razor-rendered HTML.
+
+## Development
+
+### Requirements
+
+- .NET 8 SDK
+- SQL Server LocalDB or a compatible SQL Server instance
+- Visual Studio or VS Code with C# support
+
+### Build
+
+```powershell
+dotnet build Cognify.sln
+```
+
+### Run
+
+```powershell
+dotnet run --project Cognify.Web
+```
+
+The connection string can be changed in:
+
+```text
+Cognify.Web/appsettings.json
+```
+
+## Current Limitations and Future Work
+
+- Replace custom authentication with full ASP.NET Core Identity if required.
+- Add EF Core migrations for production-grade schema evolution.
+- Use `ExamTimerService` directly from the controller to centralize timing
+  logic.
+- Implement per-student fixed-question shuffling.
+- Complete admin and analytics controller workflows.
+- Replace landing-page placeholder statistics with live database data.
+- Add a dedicated ASP.NET Core Web API layer and Postman collection.
+- Add SQL views and stored procedures if required by the database syllabus.
+- Calibrate adaptive item parameters using empirical response data.
